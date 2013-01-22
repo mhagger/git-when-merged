@@ -136,9 +136,6 @@ def main(args):
     else:
         branches = ['HEAD']
 
-    sys.stdout.write('commit = %s\n' % (commit,))
-    sys.stdout.write('branches = %s\n' % (' '.join(branches),))
-
     for branch in branches:
         merge = find_merge(commit, branch)
 
