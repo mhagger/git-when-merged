@@ -69,10 +69,10 @@ def find_merge(commit, branch):
     It is assumed that content is always merged in via the second or
     subsequent parents of a merge commit."""
 
-    commits = set(rev_list('%s..%s' % (commit, branch,), '--ancestry-path'))
+    branch_commits = set(rev_list('%s..%s' % (commit, branch,), '--first-parent'))
     last = None
-    for commit in rev_list('%s..%s' % (commit, branch,), '--first-parent'):
-        if commit in commits:
+    for commit in rev_list('%s..%s' % (commit, branch,), '--ancestry-path'):
+        if commit in branch_commits:
             last = commit
 
     return last
