@@ -50,17 +50,6 @@ def iter_release_branches():
         raise RuntimeError('git for-each-ref failed')
 
 
-def find_common_items(iterable1, iterable2):
-    """Iterate over the items in iterable2 that are present in iterable1.
-
-    The iteration is in the order the items appear in iterable2."""
-
-    items = set(iterable1)
-    for item in iterable2:
-        if item in items:
-            yield item
-
-
 def rev_list(*args):
     process = subprocess.Popen(
         ['git', 'rev-list'] + list(args),
@@ -74,27 +63,19 @@ def rev_list(*args):
         raise RuntimeError('git rev-list %s failed' % (' '.join(args),))
 
 
-def last(iterable):
-    """Return the last item from an iterable, or None if the iterable was empty."""
-
-    last = None
-    for i in iterable:
-        last = i
-    return last
-
-
 def find_merge(commit, branch):
     """Return the SHA1 of the commit that merged commit into branch.
 
     It is assumed that content is always merged in via the second or
     subsequent parents of a merge commit."""
 
-    return last(
-        find_common_items(
-            rev_list('%s..%s' % (commit, branch,), '--ancestry-path'),
-            rev_list('%s..%s' % (commit, branch,), '--first-parent'),
-            )
-        )
+    commits = set(rev_list('%s..%s' % (commit, branch,), '--ancestry-path'))
+    last = None
+    for commit in rev_list('%s..%s' % (commit, branch,), '--first-parent'):
+        if commit in commits:
+            last = commit
+
+    return last
 
 
 def main(args):
