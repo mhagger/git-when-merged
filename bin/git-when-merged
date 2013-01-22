@@ -89,7 +89,7 @@ def find_merge(commit, branch):
     branch_commits = set(rev_list('%s^..%s' % (commit, branch,), '--first-parent'))
 
     if commit in branch_commits:
-        sys.stdout.write('Branch %-14s: Commit was made directly on this branch.\n' % (branch,))
+        sys.stdout.write('%-30s Commit is directly on this branch.\n' % (branch,))
         return None
 
     last = None
@@ -98,9 +98,9 @@ def find_merge(commit, branch):
             last = commit
 
     if not last:
-        sys.stdout.write('Branch %-14s: Does not contain commit.\n' % (branch,))
+        sys.stdout.write('%-30s Does not contain commit.\n' % (branch,))
     else:
-        sys.stdout.write('Branch %-14s: %s\n' % (branch, last,))
+        sys.stdout.write('%-30s %s\n' % (branch, last,))
 
     return last
 
