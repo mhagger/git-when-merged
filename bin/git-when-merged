@@ -38,6 +38,10 @@ JPK_BRANCHES_RE = re.compile(
     )
 
 
+class Failure(Exception):
+    pass
+
+
 def iter_release_branches():
     process = subprocess.Popen(
         ['git', 'for-each-ref', 'refs/remotes/jpk'],
@@ -52,7 +56,7 @@ def iter_release_branches():
 
     retcode = process.wait()
     if retcode:
-        raise RuntimeError('git for-each-ref failed')
+        raise Failure('git for-each-ref failed')
 
 
 def rev_parse(arg):
@@ -63,13 +67,13 @@ def rev_parse(arg):
     (out, err) = process.communicate()
     retcode = process.poll()
     if retcode:
-        raise RuntimeError('%r is not a valid commit!' % (arg,))
+        raise Failure('%r is not a valid commit!' % (arg,))
     return out.strip()
 
 
 def rev_list(*args):
     process = subprocess.Popen(
-        ['git', 'rev-list'] + list(args),
+        ['git', 'rev-list'] + list(args) + ['--'],
         stdout=subprocess.PIPE,
         )
     for line in process.stdout:
@@ -77,7 +81,7 @@ def rev_list(*args):
 
     retcode = process.wait()
     if retcode:
-        raise RuntimeError('git rev-list %s failed' % (' '.join(args),))
+        raise Failure('git rev-list %s failed' % (' '.join(args),))
 
 
 def find_merge(commit, branch):
@@ -86,14 +90,20 @@ def find_merge(commit, branch):
     It is assumed that content is always merged in via the second or
     subsequent parents of a merge commit."""
 
-    branch_commits = set(rev_list('%s^..%s' % (commit, branch,), '--first-parent'))
+    try:
+        branch_sha1 = rev_parse(branch)
+    except Failure, e:
+        sys.stdout.write('%-30s Is not a valid commit!\n' % (branch,))
+        return None
+
+    branch_commits = set(rev_list('%s^..%s' % (commit, branch_sha1,), '--first-parent'))
 
     if commit in branch_commits:
         sys.stdout.write('%-30s Commit is directly on this branch.\n' % (branch,))
         return None
 
     last = None
-    for commit in rev_list('%s..%s' % (commit, branch,), '--ancestry-path'):
+    for commit in rev_list('%s..%s' % (commit, branch_sha1,), '--ancestry-path'):
         if commit in branch_commits:
             last = commit
 
@@ -132,17 +142,27 @@ def main(args):
 
     commit = args.pop(0)
     # Convert commit into a SHA1:
-    commit = rev_parse(commit)
+    try:
+        commit = rev_parse(commit)
+    except Failure, e:
+        sys.exit(e.message)
 
     if options.jpk_branches:
-        branches = list(iter_release_branches()) + args
+        try:
+            branches = list(iter_release_branches()) + args
+        except Failure, e:
+            sys.exit(e.message)
     elif args:
         branches = list(args)
     else:
         branches = ['HEAD']
 
     for branch in branches:
-        merge = find_merge(commit, branch)
+        try:
+            merge = find_merge(commit, branch)
+        except Failure, e:
+            sys.stderr.write('%s\n' % (e.message,))
+            continue
 
         if not merge:
             continue
