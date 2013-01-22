@@ -1,76 +1,130 @@
-#!/bin/bash
+#! /usr/bin/python2
 
-# Description:
-#   For each branch given, show the merge that brought a commit into it
-# Usage:
-#   git when-merged [-d] <commit> <branch1> [<branch2> [...]]
-#   git when-merged [-d] -j
-#   git when-merged [-d|-v] <commit> <branch>
-# Options:
-#   -d  display the diff of each merge commit
-#   -v  start gitk, selecting the merge commit
-#   -j  set the branch list to the currently active jpk branches
-# Based on:
-#   http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
+""" For each branch given, show the merge that brought a commit into it.
 
-jpk_branches=( release-4.0 release-4.2 release-4.3 nt-release-2.2 master )
+Usage:
+    git when-merged [-d] <commit> <branch1> [<branch2> [...]]
+    git when-merged [-d] -j
+    git when-merged [-d|-v] <commit> <branch>
+Options:
+    -d  display the diff of each merge commit
+    -v  start gitk, selecting the merge commit
+    -j  set the branch list to the currently active jpk branches
 
-function find-common-lines () {
-    # A one-liner hack to find lines common to two files:
-    # Appends 1 to $seen{$line} for each line in the first file,
-    # 0 for each line in the second file
-    file1=$1
-    file2=$2
-    perl -ne 'print if ($seen{$_} .= @ARGV) =~ /10$/' ${file1} ${file2}
-}
+Based on:
+    http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
+"""
 
-function find-merge () {
-    commit=$1
-    branch=$2
-
-    find-common-lines \
-        <(git rev-list ${commit}..${branch} --ancestry-path) \
-        <(git rev-list ${commit}..${branch} --first-parent) \
-        | tail -n1
-}
+import sys
+import subprocess
+import optparse
 
 
-while getopts "dvj" opt; do
-    case $opt in
-        d ) show_diff=1;;
-        v ) visualize=1;;
-        j ) use_jpk_branches=1;;
-        * ) ;;
-    esac
-done
-shift $((OPTIND-1))
-
-commit=$1
-shift
-
-if [ -z ${use_jpk_branches} ]; then
-    branches="$@"
-else
-    branches=${jpk_branches[@]}
-fi
+JPK_BRANCHES = [
+    'release-4.0',
+    'release-4.2',
+    'release-4.3',
+    'nt-release-2.2',
+    'master',
+    ]
 
 
-echo "commit = ${commit}"
-echo "branches = ${branches}"
+def find_common_items(iterable1, iterable2):
+    """Iterate over the items in iterable2 that are present in iterable1.
 
-for b in ${branches[@]}; do
-    merge=$(find-merge "${commit}" "${b}")
-    printf "Branch %-14s: %s\n" "${b}" "${merge}"
+    The iteration is in the order the items appear in iterable2."""
 
-    if [ -z ${merge} ]; then
-        continue
-    fi
+    items = set(iterable1)
+    for item in iterable2:
+        if item in items:
+            yield item
 
-    if [ ${show_diff} ]; then
-        git show "${merge}"
-    fi
 
-    if [ ${visualize} ]; then
-        gitk --all --select-commit="${merge}"
-    fi
-done
+def rev_list(*args):
+    process = subprocess.Popen(
+        ['git', 'rev-list'] + list(args),
+        stdout=subprocess.PIPE,
+        )
+    for line in process.stdout:
+        yield line.strip()
+
+    retcode = process.wait()
+    if retcode:
+        raise RuntimeError('git rev-list %s failed' % (' '.join(args),))
+
+
+def last(iterable):
+    """Return the last item from an iterable, or None if the iterable was empty."""
+
+    last = None
+    for i in iterable:
+        last = i
+    return last
+
+
+def find_merge(commit, branch):
+    """Return the SHA1 of the commit that merged commit into branch.
+
+    It is assumed that content is always merged in via the second or
+    subsequent parents of a merge commit."""
+
+    return last(
+        find_common_items(
+            rev_list('%s..%s' % (commit, branch,), '--ancestry-path'),
+            rev_list('%s..%s' % (commit, branch,), '--first-parent'),
+            )
+        )
+
+
+def main(args):
+    parser = optparse.OptionParser(
+        prog='git when-merged',
+        description=__doc__,
+        usage='%prog [--diff|-d] [--visualize|-v] [--jpk-branches|-j] COMMIT [BRANCH...]',
+        )
+
+    parser.add_option(
+        '--diff', '-d', action='store_true', default=False,
+        help='Show the contents of the merge commit.',
+        )
+    parser.add_option(
+        '--visualize', '-v', action='store_true', default=False,
+        help='Visualize the merge commit using gitk.',
+        )
+    parser.add_option(
+        '--jpk-branches', '-j', action='store_true', default=False,
+        help='Show where the commit was merged into the main JPK branches.',
+        )
+
+    (options, args) = parser.parse_args(args)
+
+    if not args:
+        parser.error('You must specify a COMMIT argument')
+
+    commit = args.pop(0)
+
+    if options.jpk_branches:
+        branches = JPK_BRANCHES + args
+    elif args:
+        branches = list(args)
+
+    sys.stdout.write('commit = %s\n' % (commit,))
+    sys.stdout.write('branches = %s\n' % (' '.join(branches),))
+
+    for branch in branches:
+        merge = find_merge(commit, branch)
+        if not merge:
+            sys.stdout.write('Branch %-14s: N/A\n' % (branch,))
+            continue
+        else:
+            sys.stdout.write('Branch %-14s: %s\n' % (branch, merge,))
+
+        if options.diff:
+            subprocess.check_call(['git', 'show', merge])
+
+        if options.visualize:
+            subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
+
+
+main(sys.argv[1:])
+
