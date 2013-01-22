@@ -16,17 +16,38 @@ Based on:
 """
 
 import sys
+import re
 import subprocess
 import optparse
 
 
-JPK_BRANCHES = [
-    'release-4.0',
-    'release-4.2',
-    'release-4.3',
-    'nt-release-2.2',
-    'master',
-    ]
+JPK_BRANCHES_RE = re.compile(
+    r"""
+    ^refs\/remotes\/jpk\/
+    (
+    (?:nt-)?release\-\d+\.\d+
+    |
+    master
+    )
+    $
+    """,
+    re.VERBOSE,
+    )
+
+
+def iter_release_branches():
+    process = subprocess.Popen(
+        ['git', 'for-each-ref', 'refs/remotes/jpk'],
+        stdout=subprocess.PIPE,
+        )
+    for line in process.stdout:
+        (sha1, type, name) = line.strip().split()
+        if type == 'commit' and JPK_BRANCHES_RE.match(name):
+            yield name
+
+    retcode = process.wait()
+    if retcode:
+        raise RuntimeError('git for-each-ref failed')
 
 
 def find_common_items(iterable1, iterable2):
@@ -104,7 +125,7 @@ def main(args):
     commit = args.pop(0)
 
     if options.jpk_branches:
-        branches = JPK_BRANCHES + args
+        branches = list(iter_release_branches()) + args
     elif args:
         branches = list(args)
     else:
