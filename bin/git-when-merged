@@ -75,6 +75,11 @@ def find_merge(commit, branch):
         if commit in branch_commits:
             last = commit
 
+    if not last:
+        sys.stdout.write('Branch %-14s: N/A\n' % (branch,))
+    else:
+        sys.stdout.write('Branch %-14s: %s\n' % (branch, last,))
+
     return last
 
 
@@ -117,11 +122,9 @@ def main(args):
 
     for branch in branches:
         merge = find_merge(commit, branch)
+
         if not merge:
-            sys.stdout.write('Branch %-14s: N/A\n' % (branch,))
             continue
-        else:
-            sys.stdout.write('Branch %-14s: %s\n' % (branch, merge,))
 
         if options.diff:
             subprocess.check_call(['git', 'show', merge])
