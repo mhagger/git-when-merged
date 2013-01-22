@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Description:
+#   For each branch given, show the merge that brought a commit into it
+# Usage:
+#   git when-merged [-d] <commit> <branch1> [<branch2> [...]]
+#   git when-merged [-d] -j
+#   git when-merged [-d|-v] <commit> <branch>
+# Options:
+#   -d  display the diff of each merge commit
+#   -v  start gitk, selecting the merge commit
+#   -j  set the branch list to the currently active jpk branches
+# Based on:
+#   http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
+
+jpk_branches=( release-4.0 release-4.2 release-4.3 nt-release-2.2 master )
+
+function find-common-lines () {
+    # A one-liner hack to find lines common to two files:
+    # Appends 1 to $seen{$line} for each line in the first file,
+    # 0 for each line in the second file
+    file1=$1
+    file2=$2
+    perl -ne 'print if ($seen{$_} .= @ARGV) =~ /10$/' ${file1} ${file2}
+}
+
+function find-merge () {
+    commit=$1
+    branch=$2
+
+    find-common-lines \
+        <(git rev-list ${commit}..${branch} --ancestry-path) \
+        <(git rev-list ${commit}..${branch} --first-parent) \
+        | tail -n1
+}
+
+
+while getopts "dvj" opt; do
+    case $opt in
+        d ) show_diff=1;;
+        v ) visualize=1;;
+        j ) use_jpk_branches=1;;
+        * ) ;;
+    esac
+done
+shift $((OPTIND-1))
+
+commit=$1
+shift
+
+if [ -z ${use_jpk_branches} ]; then
+    branches="$@"
+else
+    branches=${jpk_branches[@]}
+fi
+
+
+echo "commit = ${commit}"
+echo "branches = ${branches}"
+
+for b in ${branches[@]}; do
+    merge=$(find-merge "${commit}" "${b}")
+    printf "Branch %-14s: %s\n" "${b}" "${merge}"
+
+    if [ -z ${merge} ]; then
+        continue
+    fi
+
+    if [ ${show_diff} ]; then
+        git show "${merge}"
+    fi
+
+    if [ ${visualize} ]; then
+        gitk --all --select-commit="${merge}"
+    fi
+done
