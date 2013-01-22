@@ -23,11 +23,14 @@ import optparse
 
 JPK_BRANCHES_RE = re.compile(
     r"""
-    ^refs\/remotes\/jpk\/
+    ^refs\/remotes\/
     (
+    jpk\/
+    (?:
     (?:nt-)?release\-\d+\.\d+
     |
     master
+    )
     )
     $
     """,
@@ -42,8 +45,10 @@ def iter_release_branches():
         )
     for line in process.stdout:
         (sha1, type, name) = line.strip().split()
-        if type == 'commit' and JPK_BRANCHES_RE.match(name):
-            yield name
+        if type == 'commit':
+            m = JPK_BRANCHES_RE.match(name)
+            if m:
+                yield m.group(1)
 
     retcode = process.wait()
     if retcode:
