@@ -107,6 +107,8 @@ def main(args):
         branches = JPK_BRANCHES + args
     elif args:
         branches = list(args)
+    else:
+        branches = ['HEAD']
 
     sys.stdout.write('commit = %s\n' % (commit,))
     sys.stdout.write('branches = %s\n' % (' '.join(branches),))
