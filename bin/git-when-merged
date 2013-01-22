@@ -50,6 +50,18 @@ def iter_release_branches():
         raise RuntimeError('git for-each-ref failed')
 
 
+def rev_parse(arg):
+    process = subprocess.Popen(
+        ['git', 'rev-parse', '--verify', '--quiet', arg],
+        stdout=subprocess.PIPE,
+        )
+    (out, err) = process.communicate()
+    retcode = process.poll()
+    if retcode:
+        raise RuntimeError('%r is not a valid commit!' % (arg,))
+    return out.strip()
+
+
 def rev_list(*args):
     process = subprocess.Popen(
         ['git', 'rev-list'] + list(args),
@@ -69,14 +81,19 @@ def find_merge(commit, branch):
     It is assumed that content is always merged in via the second or
     subsequent parents of a merge commit."""
 
-    branch_commits = set(rev_list('%s..%s' % (commit, branch,), '--first-parent'))
+    branch_commits = set(rev_list('%s^..%s' % (commit, branch,), '--first-parent'))
+
+    if commit in branch_commits:
+        sys.stdout.write('Branch %-14s: Commit was made directly on this branch.\n' % (branch,))
+        return None
+
     last = None
     for commit in rev_list('%s..%s' % (commit, branch,), '--ancestry-path'):
         if commit in branch_commits:
             last = commit
 
     if not last:
-        sys.stdout.write('Branch %-14s: N/A\n' % (branch,))
+        sys.stdout.write('Branch %-14s: Does not contain commit.\n' % (branch,))
     else:
         sys.stdout.write('Branch %-14s: %s\n' % (branch, last,))
 
@@ -109,6 +126,8 @@ def main(args):
         parser.error('You must specify a COMMIT argument')
 
     commit = args.pop(0)
+    # Convert commit into a SHA1:
+    commit = rev_parse(commit)
 
     if options.jpk_branches:
         branches = list(iter_release_branches()) + args
