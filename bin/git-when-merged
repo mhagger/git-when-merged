@@ -1,15 +1,67 @@
 #! /usr/bin/python2
 
-""" For each branch given, show the merge that brought a commit into it.
+"""Find when a commit was merged into one or more branches.
 
-Usage:
-    git when-merged [-d] <commit> <branch1> [<branch2> [...]]
-    git when-merged [-d] -j
-    git when-merged [-d|-v] <commit> <branch>
+Find the merge commit that brought a given commit into the specified
+branch(es).  Specificially, look for the oldest commit on the
+first-parent history of the branch that contains the specified commit
+as an ancestor.
+
+"""
+
+USAGE = """git when-merged [<options>] <commit> [<branch>...]
+
 Options:
-    -d  display the diff of each merge commit
-    -v  start gitk, selecting the merge commit
-    -j  set the branch list to the currently active jpk branches
+    -p <regexp>, --pattern=<regexp>
+        look for when the commit was merged to the references matching
+        the specified regexp.  If the regexp has parentheses for
+        grouping, then the part matching the first group is displayed
+        in the output
+
+    -n <name>, --name=<name>
+        look for when the commit was merged to the references matching
+        the pattern with the specified name (see CONFIGURATION below)
+
+    -s, --default
+        shorthand for "--name=default"
+
+    -d, --diff
+        display the diff of each merge commit
+
+    -v, --visualize
+        start gitk, selecting the merge commit
+
+    <commit>
+        a commit whose destiny you would like to determine (this
+        argument is required)
+
+    <branch>...
+        the destination branches into which <commit> might have been
+        merged.  If neither <branch> nor -p/--pattern nor
+        -s/--default is specified, then HEAD is used
+
+
+Configuration:
+
+    whenmerged.<name>.pattern
+        Regular expressions that match reference names for the pattern
+        called <name>.  A regexp must match the whole, full reference
+        name, in the form "refs/heads/master".  If the regexp contains
+        parenthesis for grouping, the substring for group 1 will be
+        used as an abbreviation for the full reference name.  This
+        option can be multivalued, in which case references matching
+        any of the patterns are considered.  Typically you will use
+        pattern(s) that match master and/or significant release
+        branches, or perhaps their remote-tracking equivalents.  For
+        example,
+
+            git config whenmerged.default.pattern \
+                    'refs/heads/(master)'
+
+        or
+
+            git config whenmerged.releases.pattern \
+                    'refs/remotes/origin/(release\-\d+\.\d+)'
 
 Based on:
     http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
@@ -21,38 +73,49 @@ import subprocess
 import optparse
 
 
-JPK_BRANCHES_RE = re.compile(
-    r"""
-    ^refs\/remotes\/
-    (
-    jpk\/
-    (?:
-    (?:nt-)?release\-\d+\.\d+
-    |
-    master
-    )
-    )
-    $
-    """,
-    re.VERBOSE,
-    )
-
-
 class Failure(Exception):
     pass
 
 
-def iter_release_branches():
+def read_refpatterns(name):
+    key = 'whenmerged.%s.pattern' % (name,)
     process = subprocess.Popen(
-        ['git', 'for-each-ref', 'refs/remotes/jpk'],
+        ['git', 'config', '--get-all', '--null', key],
+        stdout=subprocess.PIPE,
+        )
+    (out, err) = process.communicate()
+    retcode = process.wait()
+    if retcode:
+        raise Failure('There is no configuration setting for %r!' % (key,))
+    retval = []
+    for value in out.split('\0'):
+        if value:
+            try:
+                retval.append(re.compile(r'^' + value + r'$'))
+            except re.error, e:
+                sys.stderr.write(
+                    'Error compiling branch pattern %r; ignoring: %s\n'
+                    % (value, e.message,)
+                    )
+    return retval
+
+
+def iter_refs(refpatterns):
+    process = subprocess.Popen(
+        ['git', 'for-each-ref'],
         stdout=subprocess.PIPE,
         )
     for line in process.stdout:
         (sha1, type, name) = line.strip().split()
         if type == 'commit':
-            m = JPK_BRANCHES_RE.match(name)
-            if m:
-                yield m.group(1)
+            for refpattern in refpatterns:
+                m = refpattern.match(name)
+                if m:
+                    try:
+                        yield (name, m.group(1))
+                    except IndexError:
+                        yield (name, name)
+                    continue
 
     retcode = process.wait()
     if retcode:
@@ -84,7 +147,7 @@ def rev_list(*args):
         raise Failure('git rev-list %s failed' % (' '.join(args),))
 
 
-def find_merge(commit, branch):
+def find_merge(commit, branch, abbrev):
     """Return the SHA1 of the commit that merged commit into branch.
 
     It is assumed that content is always merged in via the second or
@@ -93,13 +156,13 @@ def find_merge(commit, branch):
     try:
         branch_sha1 = rev_parse(branch)
     except Failure, e:
-        sys.stdout.write('%-30s Is not a valid commit!\n' % (branch,))
+        sys.stdout.write('%-30s Is not a valid commit!\n' % (abbrev,))
         return None
 
     branch_commits = set(rev_list('%s^..%s' % (commit, branch_sha1,), '--first-parent'))
 
     if commit in branch_commits:
-        sys.stdout.write('%-30s Commit is directly on this branch.\n' % (branch,))
+        sys.stdout.write('%-30s Commit is directly on this branch.\n' % (abbrev,))
         return None
 
     last = None
@@ -108,9 +171,9 @@ def find_merge(commit, branch):
             last = commit
 
     if not last:
-        sys.stdout.write('%-30s Does not contain commit.\n' % (branch,))
+        sys.stdout.write('%-30s Does not contain commit.\n' % (abbrev,))
     else:
-        sys.stdout.write('%-30s %s\n' % (branch, last,))
+        sys.stdout.write('%-30s %s\n' % (abbrev, last,))
 
     return last
 
@@ -119,9 +182,25 @@ def main(args):
     parser = optparse.OptionParser(
         prog='git when-merged',
         description=__doc__,
-        usage='%prog [--diff|-d] [--visualize|-v] [--jpk-branches|-j] COMMIT [BRANCH...]',
+        usage=USAGE,
         )
 
+    parser.add_option(
+        '--pattern', '-p', action='append', dest='patterns', default=[],
+        help='Show merges to references matching the specified regexp.',
+        )
+    parser.add_option(
+        '--name', '-n', action='append', dest='names', default=[],
+        help=(
+            'Show merges to references matching the configured '
+            'pattern with the given name.'
+            ),
+        )
+    parser.add_option(
+        '--default', '-s',
+        action='append_const', dest='names', const='default',
+        help='Show merges to references matching the "default" pattern.',
+        )
     parser.add_option(
         '--diff', '-d', action='store_true', default=False,
         help='Show the contents of the merge commit.',
@@ -129,10 +208,6 @@ def main(args):
     parser.add_option(
         '--visualize', '-v', action='store_true', default=False,
         help='Visualize the merge commit using gitk.',
-        )
-    parser.add_option(
-        '--jpk-branches', '-j', action='store_true', default=False,
-        help='Show where the commit was merged into the main JPK branches.',
         )
 
     (options, args) = parser.parse_args(args)
@@ -147,31 +222,45 @@ def main(args):
     except Failure, e:
         sys.exit(e.message)
 
-    if options.jpk_branches:
+    refpatterns = []
+
+    for value in options.patterns:
         try:
-            branches = list(iter_release_branches()) + args
+            refpatterns.append(re.compile(r'^' + value + r'$'))
+        except re.error, e:
+            sys.stderr.write(
+                'Error compiling pattern %r; ignoring: %s\n'
+                % (value, e.message,)
+                )
+
+    for value in options.names:
+        try:
+            refpatterns.extend(read_refpatterns(value))
         except Failure, e:
             sys.exit(e.message)
-    elif args:
-        branches = list(args)
-    else:
-        branches = ['HEAD']
 
-    for branch in branches:
+    branches = []
+
+    if refpatterns:
+        branches.extend(iter_refs(refpatterns))
+    if args:
+        branches.extend((branch, branch) for branch in args)
+    if not branches:
+        branches = [('HEAD', 'HEAD')]
+
+    for (branch, abbrev) in branches:
         try:
-            merge = find_merge(commit, branch)
+            merge = find_merge(commit, branch, abbrev)
         except Failure, e:
             sys.stderr.write('%s\n' % (e.message,))
             continue
 
-        if not merge:
-            continue
+        if merge:
+            if options.diff:
+                subprocess.check_call(['git', 'show', merge])
 
-        if options.diff:
-            subprocess.check_call(['git', 'show', merge])
-
-        if options.visualize:
-            subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
+            if options.visualize:
+                subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
 
 
 main(sys.argv[1:])
