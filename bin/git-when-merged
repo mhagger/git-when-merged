@@ -159,7 +159,9 @@ def find_merge(commit, branch, abbrev):
         sys.stdout.write('%-30s Is not a valid commit!\n' % (abbrev,))
         return None
 
-    branch_commits = set(rev_list('%s^..%s' % (commit, branch_sha1,), '--first-parent'))
+    branch_commits = set(
+        rev_list(branch_sha1, '--not', '%s^@' % (commit,), '--first-parent')
+        )
 
     if commit in branch_commits:
         sys.stdout.write('%-30s Commit is directly on this branch.\n' % (abbrev,))
