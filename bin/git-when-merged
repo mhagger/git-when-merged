@@ -9,7 +9,7 @@ as an ancestor.
 
 """
 
-USAGE = """git when-merged [<options>] <commit> [<branch>...]
+USAGE = r"""git when-merged [<options>] <commit> [<branch>...]
 
 Options:
     -p <regexp>, --pattern=<regexp>
