@@ -1,82 +1,62 @@
 #! /usr/bin/python2
 
+# Run "git when-merged --help for the documentation.
+
 """Find when a commit was merged into one or more branches.
 
-Find the merge commit that brought a given commit into the specified
-branch(es).  Specificially, look for the oldest commit on the
-first-parent history of the branch that contains the specified commit
-as an ancestor.
+Find the merge commit that brought COMMIT into the specified
+BRANCH(es).  Specificially, look for the oldest commit on the
+first-parent history of BRANCH that contains the COMMIT as an
+ancestor.
 
 """
 
-USAGE = r"""git when-merged [<options>] <commit> [<branch>...]
+USAGE = r"""git when-merged [OPTIONS] COMMIT [BRANCH...]
+"""
 
-Options:
-    -p <regexp>, --pattern=<regexp>
-        look for when the commit was merged to the references matching
-        the specified regexp.  If the regexp has parentheses for
-        grouping, then the part matching the first group is displayed
-        in the output
+EPILOG = r"""
+  COMMIT
+      a commit whose destiny you would like to determine (this
+      argument is required)
 
-    -n <name>, --name=<name>
-        look for when the commit was merged to the references matching
-        the pattern with the specified name (see CONFIGURATION below)
-
-    -s, --default
-        shorthand for "--name=default"
-
-    -d, --diff
-        display the diff of each merge commit
-
-    -v, --visualize
-        start gitk, selecting the merge commit
-
-    <commit>
-        a commit whose destiny you would like to determine (this
-        argument is required)
-
-    <branch>...
-        the destination branches into which <commit> might have been
-        merged.  If neither <branch> nor -p/--pattern nor
-        -s/--default is specified, then HEAD is used
-
+  BRANCH...
+      the destination branches into which <commit> might have been
+      merged.  If neither <branch> nor -p/--pattern nor
+      -s/--default is specified, then HEAD is used
 
 Examples:
+  git when-merged abcd                     # Find merge into current branch
+  git when-merged abcd feature-1 feature-2 # Find merge into given branches
+  git when-merged abcd -p feature-[0-9]+   # Specify branches by regex
+  git when-merged abcd -n releases         # Use whenmerged.releases.pattern
+  git when-merged abcd -s                  # Use whenmerged.default.pattern
 
-    git when-merged abcd                     # Find merge into current branch
-    git when-merged abcd feature-1 feature-2 # Find merge into given branches
-    git when-merged abcd -p feature-[0-9]+   # Specify branches by regex
-    git when-merged abcd -n releases         # Use whenmerged.releases.pattern
-    git when-merged abcd -s                  # Use whenmerged.default.pattern
-
-    git when-merged abcd -d feature-1        # Show diff for each merge commit
-    git when-merged abcd -v feature-1        # Display merge commit in gitk
-
+  git when-merged abcd -d feature-1        # Show diff for each merge commit
+  git when-merged abcd -v feature-1        # Display merge commit in gitk
 
 Configuration:
+  whenmerged.<name>.pattern
+      Regular expressions that match reference names for the pattern
+      called <name>.  A regexp is sought in the whole, full
+      reference name, in the form "refs/heads/master".  If the
+      regexp contains parenthesis for grouping, the substring for
+      group 1 will be used as an abbreviation for the full reference
+      name.  This option can be multivalued, in which case
+      references matching any of the patterns are considered.
+      Typically you will use pattern(s) that match master and/or
+      significant release branches, or perhaps their remote-tracking
+      equivalents.  For example,
 
-    whenmerged.<name>.pattern
-        Regular expressions that match reference names for the pattern
-        called <name>.  A regexp is sought in the whole, full
-        reference name, in the form "refs/heads/master".  If the
-        regexp contains parenthesis for grouping, the substring for
-        group 1 will be used as an abbreviation for the full reference
-        name.  This option can be multivalued, in which case
-        references matching any of the patterns are considered.
-        Typically you will use pattern(s) that match master and/or
-        significant release branches, or perhaps their remote-tracking
-        equivalents.  For example,
+          git config whenmerged.default.pattern \
+                  '^refs/heads/(master)$'
 
-            git config whenmerged.default.pattern \
-                    '^refs/heads/(master)$'
+      or
 
-        or
-
-            git config whenmerged.releases.pattern \
-                    '^refs/remotes/origin/(release\-\d+\.\d+)$'
+          git config whenmerged.releases.pattern \
+                  '^refs/remotes/origin/(release\-\d+\.\d+)$'
 
 Based on:
-    http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
+  http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
 """
 
 import sys
@@ -192,32 +172,51 @@ def find_merge(commit, branch, abbrev):
     return last
 
 
+class Parser(optparse.OptionParser):
+    """An OptionParser that doesn't reflow usage and epilog."""
+
+    def get_usage(self):
+        return self.usage
+
+    def format_epilog(self, formatter):
+        return self.epilog
+
+
 def main(args):
-    parser = optparse.OptionParser(
+    parser = Parser(
         prog='git when-merged',
         description=__doc__,
         usage=USAGE,
+        epilog=EPILOG,
         )
 
     parser.add_option(
-        '--pattern', '-p', action='append', dest='patterns', default=[],
-        help='Show merges to references matching the specified regexp.',
+        '--pattern', '-p', metavar='PATTERN',
+        action='append', dest='patterns', default=[],
+        help=(
+            'Show when COMMIT was merged to the references matching '
+            'the specified regexp.  If the regexp has parentheses for '
+            'grouping, then display in the output the part of the '
+            'reference name matching the first group.'
+            ),
         )
     parser.add_option(
-        '--name', '-n', action='append', dest='names', default=[],
+        '--name', '-n', metavar='NAME',
+        action='append', dest='names', default=[],
         help=(
-            'Show merges to references matching the configured '
-            'pattern with the given name.'
+            'Show when COMMIT was merged to the references matching the '
+            'configured pattern(s) with the given name (see '
+            'CONFIGURATION below).'
             ),
         )
     parser.add_option(
         '--default', '-s',
         action='append_const', dest='names', const='default',
-        help='Show merges to references matching the "default" pattern.',
+        help='Shorthand for "--name=default".',
         )
     parser.add_option(
         '--diff', '-d', action='store_true', default=False,
-        help='Show the contents of the merge commit.',
+        help='Show the diff for the merge commit.',
         )
     parser.add_option(
         '--visualize', '-v', action='store_true', default=False,
