@@ -160,7 +160,7 @@ def find_merge(commit, branch, abbrev):
         return None
 
     branch_commits = set(
-        rev_list(branch_sha1, '--not', '%s^@' % (commit,), '--first-parent')
+        rev_list('--first-parent', branch_sha1, '--not', '%s^@' % (commit,))
         )
 
     if commit in branch_commits:
@@ -168,7 +168,7 @@ def find_merge(commit, branch, abbrev):
         return None
 
     last = None
-    for commit in rev_list('%s..%s' % (commit, branch_sha1,), '--ancestry-path'):
+    for commit in rev_list('--ancestry-path', '%s..%s' % (commit, branch_sha1,)):
         if commit in branch_commits:
             last = commit
 
