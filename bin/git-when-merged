@@ -45,23 +45,23 @@ Configuration:
 
     whenmerged.<name>.pattern
         Regular expressions that match reference names for the pattern
-        called <name>.  A regexp must match the whole, full reference
-        name, in the form "refs/heads/master".  If the regexp contains
-        parenthesis for grouping, the substring for group 1 will be
-        used as an abbreviation for the full reference name.  This
-        option can be multivalued, in which case references matching
-        any of the patterns are considered.  Typically you will use
-        pattern(s) that match master and/or significant release
-        branches, or perhaps their remote-tracking equivalents.  For
-        example,
+        called <name>.  A regexp is sought in the whole, full
+        reference name, in the form "refs/heads/master".  If the
+        regexp contains parenthesis for grouping, the substring for
+        group 1 will be used as an abbreviation for the full reference
+        name.  This option can be multivalued, in which case
+        references matching any of the patterns are considered.
+        Typically you will use pattern(s) that match master and/or
+        significant release branches, or perhaps their remote-tracking
+        equivalents.  For example,
 
             git config whenmerged.default.pattern \
-                    'refs/heads/(master)'
+                    '^refs/heads/(master)$'
 
         or
 
             git config whenmerged.releases.pattern \
-                    'refs/remotes/origin/(release\-\d+\.\d+)'
+                    '^refs/remotes/origin/(release\-\d+\.\d+)$'
 
 Based on:
     http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
@@ -91,7 +91,7 @@ def read_refpatterns(name):
     for value in out.split('\0'):
         if value:
             try:
-                retval.append(re.compile(r'^' + value + r'$'))
+                retval.append(re.compile(value))
             except re.error, e:
                 sys.stderr.write(
                     'Error compiling branch pattern %r; ignoring: %s\n'
@@ -109,7 +109,7 @@ def iter_refs(refpatterns):
         (sha1, type, name) = line.strip().split()
         if type == 'commit':
             for refpattern in refpatterns:
-                m = refpattern.match(name)
+                m = refpattern.search(name)
                 if m:
                     try:
                         yield (name, m.group(1))
@@ -228,7 +228,7 @@ def main(args):
 
     for value in options.patterns:
         try:
-            refpatterns.append(re.compile(r'^' + value + r'$'))
+            refpatterns.append(re.compile(value))
         except re.error, e:
             sys.stderr.write(
                 'Error compiling pattern %r; ignoring: %s\n'
