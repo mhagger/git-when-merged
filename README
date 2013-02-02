@@ -1,0 +1,63 @@
+git when-merged [OPTIONS] COMMIT [BRANCH...]
+
+Find when a commit was merged into one or more branches.  Find the merge
+commit that brought COMMIT into the specified BRANCH(es).  Specificially, look
+for the oldest commit on the first-parent history of BRANCH that contains the
+COMMIT as an ancestor.
+
+Options:
+  -h, --help            show this help message and exit
+  -p PATTERN, --pattern=PATTERN
+                        Show when COMMIT was merged to the references matching
+                        the specified regexp.  If the regexp has parentheses
+                        for grouping, then display in the output the part of
+                        the reference name matching the first group.
+  -n NAME, --name=NAME  Show when COMMIT was merged to the references matching
+                        the configured pattern(s) with the given name (see
+                        CONFIGURATION below).
+  -s, --default         Shorthand for "--name=default".
+  -d, --diff            Show the diff for the merge commit.
+  -v, --visualize       Visualize the merge commit using gitk.
+
+  COMMIT
+      a commit whose destiny you would like to determine (this
+      argument is required)
+
+  BRANCH...
+      the destination branches into which <commit> might have been
+      merged.  If neither <branch> nor -p/--pattern nor
+      -s/--default is specified, then HEAD is used
+
+Examples:
+  git when-merged abcd                     # Find merge into current branch
+  git when-merged abcd feature-1 feature-2 # Find merge into given branches
+  git when-merged abcd -p feature-[0-9]+   # Specify branches by regex
+  git when-merged abcd -n releases         # Use whenmerged.releases.pattern
+  git when-merged abcd -s                  # Use whenmerged.default.pattern
+
+  git when-merged abcd -d feature-1        # Show diff for each merge commit
+  git when-merged abcd -v feature-1        # Display merge commit in gitk
+
+Configuration:
+  whenmerged.<name>.pattern
+      Regular expressions that match reference names for the pattern
+      called <name>.  A regexp is sought in the whole, full
+      reference name, in the form "refs/heads/master".  If the
+      regexp contains parenthesis for grouping, the substring for
+      group 1 will be used as an abbreviation for the full reference
+      name.  This option can be multivalued, in which case
+      references matching any of the patterns are considered.
+      Typically you will use pattern(s) that match master and/or
+      significant release branches, or perhaps their remote-tracking
+      equivalents.  For example,
+
+          git config whenmerged.default.pattern \
+                  '^refs/heads/(master)$'
+
+      or
+
+          git config whenmerged.releases.pattern \
+                  '^refs/remotes/origin/(release\-\d+\.\d+)$'
+
+Based on:
+  http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
