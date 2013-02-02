@@ -107,7 +107,7 @@ def iter_refs(refpatterns):
                         yield (name, m.group(1))
                     except IndexError:
                         yield (name, name)
-                    continue
+                    break
 
     retcode = process.wait()
     if retcode:
