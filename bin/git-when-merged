@@ -115,13 +115,20 @@ def iter_commit_refs():
         raise Failure('git for-each-ref failed')
 
 
+def matches_any(refname, refpatterns):
+    for refpattern in refpatterns:
+        if refpattern.search(refname):
+            return True
+    else:
+        return False
+
+
 def iter_matching_refs(refpatterns):
-    for refname in iter_commit_refs():
-        for refpattern in refpatterns:
-            m = refpattern.search(refname)
-            if m:
-                yield refname
-                break
+    return (
+        refname
+        for refname in iter_commit_refs()
+        if matches_any(refname, refpatterns)
+        )
 
 
 def rev_parse(arg):
