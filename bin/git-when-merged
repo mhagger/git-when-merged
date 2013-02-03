@@ -91,7 +91,12 @@ def read_refpatterns(name):
     return retval
 
 
-def iter_refs(refpatterns):
+def iter_commit_refs():
+    """Iterate over the names of references that refer to commits.
+
+    (This includes references that refer to annotated tags that refer
+    to commits.)"""
+
     process = subprocess.Popen(
         [
             'git', 'for-each-ref',
@@ -101,17 +106,22 @@ def iter_refs(refpatterns):
         )
     for line in process.stdout:
         words = line.strip().split()
-        name = words.pop(0)
+        refname = words.pop(0)
         if words == ['commit'] or words == ['tag', 'commit']:
-            for refpattern in refpatterns:
-                m = refpattern.search(name)
-                if m:
-                    yield (name, name)
-                    break
+            yield refname
 
     retcode = process.wait()
     if retcode:
         raise Failure('git for-each-ref failed')
+
+
+def iter_matching_refs(refpatterns):
+    for refname in iter_commit_refs():
+        for refpattern in refpatterns:
+            m = refpattern.search(refname)
+            if m:
+                yield (refname, refname)
+                break
 
 
 def rev_parse(arg):
@@ -257,7 +267,7 @@ def main(args):
     branches = []
 
     if refpatterns:
-        branches.extend(iter_refs(refpatterns))
+        branches.extend(iter_matching_refs(refpatterns))
     if args:
         branches.extend((branch, branch) for branch in args)
     if not branches:
