@@ -85,19 +85,46 @@ if not (0x02050000 <= sys.hexversion < 0x03000000):
     sys.exit('Python 2, version 2.5 or later is required')
 
 
+# Backwards compatibility:
+try:
+    from subprocess import CalledProcessError
+except ImportError:
+    # Use definition from Python 2.7 subprocess module:
+    class CalledProcessError(Exception):
+        def __init__(self, returncode, cmd, output=None):
+            self.returncode = returncode
+            self.cmd = cmd
+            self.output = output
+        def __str__(self):
+            return "Command '%s' returned non-zero exit status %d" % (self.cmd, self.returncode)
+
+try:
+    from subprocess import check_output
+except ImportError:
+    # Use definition from Python 2.7 subprocess module:
+    def check_output(*popenargs, **kwargs):
+        if 'stdout' in kwargs:
+            raise ValueError('stdout argument not allowed, it will be overridden.')
+        process = subprocess.Popen(stdout=PIPE, *popenargs, **kwargs)
+        output, unused_err = process.communicate()
+        retcode = process.poll()
+        if retcode:
+            cmd = kwargs.get("args")
+            if cmd is None:
+                cmd = popenargs[0]
+            raise CalledProcessError(retcode, cmd, output=output)
+        return output
+
+
 class Failure(Exception):
     pass
 
 
 def read_refpatterns(name):
     key = 'whenmerged.%s.pattern' % (name,)
-    process = subprocess.Popen(
-        ['git', 'config', '--get-all', '--null', key],
-        stdout=subprocess.PIPE,
-        )
-    (out, err) = process.communicate()
-    retcode = process.wait()
-    if retcode:
+    try:
+        out = check_output(['git', 'config', '--get-all', '--null', key])
+    except CalledProcessError:
         raise Failure('There is no configuration setting for %r!' % (key,))
     retval = []
     for value in out.split('\0'):
@@ -144,15 +171,10 @@ def matches_any(refname, refpatterns):
 
 
 def rev_parse(arg):
-    process = subprocess.Popen(
-        ['git', 'rev-parse', '--verify', '--quiet', arg],
-        stdout=subprocess.PIPE,
-        )
-    (out, err) = process.communicate()
-    retcode = process.poll()
-    if retcode:
+    try:
+        return check_output(['git', 'rev-parse', '--verify', '--quiet', arg]).strip()
+    except CalledProcessError:
         raise Failure('%r is not a valid commit!' % (arg,))
-    return out.strip()
 
 
 def rev_list(*args):
@@ -218,13 +240,9 @@ def get_head_name():
 
     Otherwise return the string 'HEAD'."""
 
-    process = subprocess.Popen(
-        ['git', 'symbolic-ref', '-q', 'HEAD'],
-        stdout=subprocess.PIPE,
-        )
-    (out, err) = process.communicate()
-    retcode = process.wait()
-    if retcode:
+    try:
+        out = check_output(['git', 'symbolic-ref', '-q', 'HEAD'])
+    except CalledProcessError:
         # Head must be detached.
         return 'HEAD'
     else:
