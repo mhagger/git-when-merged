@@ -122,14 +122,6 @@ def matches_any(refname, refpatterns):
         )
 
 
-def iter_matching_refs(refpatterns):
-    return (
-        refname
-        for refname in iter_commit_refs()
-        if matches_any(refname, refpatterns)
-        )
-
-
 def rev_parse(arg):
     process = subprocess.Popen(
         ['git', 'rev-parse', '--verify', '--quiet', arg],
@@ -273,7 +265,11 @@ def main(args):
     branches = set()
 
     if refpatterns:
-        branches.update(iter_matching_refs(refpatterns))
+        branches.update(
+            refname
+            for refname in iter_commit_refs()
+            if matches_any(refname, refpatterns)
+            )
     if args:
         branches.update(args)
     if not branches:
