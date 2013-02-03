@@ -21,8 +21,10 @@ EPILOG = r"""
 
   BRANCH...
       the destination branches into which <commit> might have been
-      merged.  If neither <branch> nor -p/--pattern nor
-      -s/--default is specified, then HEAD is used
+      merged.  (Actually, BRANCH can be an arbitrary commit, specified
+      in any way that is understood by git-rev-parse(1).) If neither
+      <branch> nor -p/--pattern nor -s/--default is specified, then
+      HEAD is used
 
 Examples:
   git when-merged abcd                     # Find merge into current branch
@@ -91,12 +93,16 @@ def read_refpatterns(name):
 
 def iter_refs(refpatterns):
     process = subprocess.Popen(
-        ['git', 'for-each-ref'],
+        [
+            'git', 'for-each-ref',
+            '--format=%(refname) %(objecttype) %(*objecttype)',
+            ],
         stdout=subprocess.PIPE,
         )
     for line in process.stdout:
-        (sha1, type, name) = line.strip().split()
-        if type == 'commit':
+        words = line.strip().split()
+        name = words.pop(0)
+        if words == ['commit'] or words == ['tag', 'commit']:
             for refpattern in refpatterns:
                 m = refpattern.search(name)
                 if m:
