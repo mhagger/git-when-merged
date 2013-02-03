@@ -198,6 +198,24 @@ class Parser(optparse.OptionParser):
         return self.epilog
 
 
+def get_head_name():
+    """If HEAD is a symbolic reference, return the name of the reference.
+
+    Otherwise return the string 'HEAD'."""
+
+    process = subprocess.Popen(
+        ['git', 'symbolic-ref', '-q', 'HEAD'],
+        stdout=subprocess.PIPE,
+        )
+    (out, err) = process.communicate()
+    retcode = process.wait()
+    if retcode:
+        # Head must be detached.
+        return 'HEAD'
+    else:
+        return out.strip()
+
+
 def main(args):
     parser = Parser(
         prog='git when-merged',
@@ -279,7 +297,7 @@ def main(args):
     if args:
         branches.update(args)
     if not branches:
-        branches.add('HEAD')
+        branches.add(get_head_name())
 
     for branch in sorted(branches):
         try:
