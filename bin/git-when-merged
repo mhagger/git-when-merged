@@ -151,7 +151,7 @@ def rev_list(*args):
 
 FORMAT = '%(refname)-38s %(msg)s\n'
 
-def find_merge(commit, branch, abbrev):
+def find_merge(commit, branch):
     """Return the SHA1 of the commit that merged commit into branch.
 
     It is assumed that content is always merged in via the second or
@@ -160,7 +160,7 @@ def find_merge(commit, branch, abbrev):
     try:
         branch_sha1 = rev_parse(branch)
     except Failure, e:
-        sys.stdout.write(FORMAT % dict(refname=abbrev, msg='Is not a valid commit!'))
+        sys.stdout.write(FORMAT % dict(refname=branch, msg='Is not a valid commit!'))
         return None
 
     branch_commits = set(
@@ -168,7 +168,7 @@ def find_merge(commit, branch, abbrev):
         )
 
     if commit in branch_commits:
-        sys.stdout.write(FORMAT % dict(refname=abbrev, msg='Commit is directly on this branch.'))
+        sys.stdout.write(FORMAT % dict(refname=branch, msg='Commit is directly on this branch.'))
         return None
 
     last = None
@@ -177,9 +177,9 @@ def find_merge(commit, branch, abbrev):
             last = commit
 
     if not last:
-        sys.stdout.write(FORMAT % dict(refname=abbrev, msg='Does not contain commit.'))
+        sys.stdout.write(FORMAT % dict(refname=branch, msg='Does not contain commit.'))
     else:
-        sys.stdout.write(FORMAT % dict(refname=abbrev, msg=last))
+        sys.stdout.write(FORMAT % dict(refname=branch, msg=last))
 
     return last
 
@@ -275,7 +275,7 @@ def main(args):
 
     for branch in branches:
         try:
-            merge = find_merge(commit, branch, branch)
+            merge = find_merge(commit, branch)
         except Failure, e:
             sys.stderr.write('%s\n' % (e.message,))
             continue
