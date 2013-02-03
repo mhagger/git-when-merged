@@ -116,11 +116,10 @@ def iter_commit_refs():
 
 
 def matches_any(refname, refpatterns):
-    for refpattern in refpatterns:
-        if refpattern.search(refname):
-            return True
-    else:
-        return False
+    return any(
+        refpattern.search(refname)
+        for refpattern in refpatterns
+        )
 
 
 def iter_matching_refs(refpatterns):
