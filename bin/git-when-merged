@@ -264,16 +264,16 @@ def main(args):
         except Failure, e:
             sys.exit(e.message)
 
-    branches = []
+    branches = set()
 
     if refpatterns:
-        branches.extend(iter_matching_refs(refpatterns))
+        branches.update(iter_matching_refs(refpatterns))
     if args:
-        branches.extend(args)
+        branches.update(args)
     if not branches:
-        branches.append('HEAD')
+        branches.add('HEAD')
 
-    for branch in branches:
+    for branch in sorted(branches):
         try:
             merge = find_merge(commit, branch)
         except Failure, e:
