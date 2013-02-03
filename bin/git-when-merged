@@ -139,7 +139,7 @@ def rev_list(*args):
         raise Failure('git rev-list %s failed' % (' '.join(args),))
 
 
-FORMAT = '%(refname)-30s %(msg)s\n'
+FORMAT = '%(refname)-38s %(msg)s\n'
 
 def find_merge(commit, branch, abbrev):
     """Return the SHA1 of the commit that merged commit into branch.
