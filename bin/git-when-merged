@@ -64,6 +64,12 @@ import subprocess
 import optparse
 
 
+# This upper end of this test doesn't actually work, because the
+# syntax of this script is not valid Python 3.
+if not (0x02050000 <= sys.hexversion < 0x03000000):
+    sys.exit('Python 2, version 2.5 or later is required')
+
+
 class Failure(Exception):
     pass
 
