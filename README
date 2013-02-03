@@ -41,23 +41,20 @@ Examples:
 Configuration:
   whenmerged.<name>.pattern
       Regular expressions that match reference names for the pattern
-      called <name>.  A regexp is sought in the whole, full
-      reference name, in the form "refs/heads/master".  If the
-      regexp contains parenthesis for grouping, the substring for
-      group 1 will be used as an abbreviation for the full reference
-      name.  This option can be multivalued, in which case
-      references matching any of the patterns are considered.
-      Typically you will use pattern(s) that match master and/or
-      significant release branches, or perhaps their remote-tracking
-      equivalents.  For example,
+      called <name>.  A regexp is sought in the full reference name,
+      in the form "refs/heads/master".  This option can be
+      multivalued, in which case references matching any of the
+      patterns are considered.  Typically you will use pattern(s) that
+      match master and/or significant release branches, or perhaps
+      their remote-tracking equivalents.  For example,
 
           git config whenmerged.default.pattern \
-                  '^refs/heads/(master)$'
+                  '^refs/heads/master$'
 
       or
 
           git config whenmerged.releases.pattern \
-                  '^refs/remotes/origin/(release\-\d+\.\d+)$'
+                  '^refs/remotes/origin/release\-\d+\.\d+$'
 
 Based on:
   http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
