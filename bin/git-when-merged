@@ -120,7 +120,7 @@ def iter_matching_refs(refpatterns):
         for refpattern in refpatterns:
             m = refpattern.search(refname)
             if m:
-                yield (refname, refname)
+                yield refname
                 break
 
 
@@ -269,13 +269,13 @@ def main(args):
     if refpatterns:
         branches.extend(iter_matching_refs(refpatterns))
     if args:
-        branches.extend((branch, branch) for branch in args)
+        branches.extend(args)
     if not branches:
-        branches = [('HEAD', 'HEAD')]
+        branches.append('HEAD')
 
-    for (branch, abbrev) in branches:
+    for branch in branches:
         try:
-            merge = find_merge(commit, branch, abbrev)
+            merge = find_merge(commit, branch, branch)
         except Failure, e:
             sys.stderr.write('%s\n' % (e.message,))
             continue
