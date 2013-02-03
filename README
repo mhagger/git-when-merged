@@ -17,8 +17,8 @@ Options:
                         whenmerged.<name>.pattern below under CONFIGURATION).
   -s, --default         Shorthand for "--name=default".
   --abbrev=N            Abbreviate commit SHA1s to the specified number of
-                        characters.  See also whenmerged.abbrev below under
-                        CONFIGURATION.
+                        characters (or more if needed to avoid ambiguity).
+                        See also whenmerged.abbrev below under CONFIGURATION.
   --no-abbrev           Do not abbreviate commit SHA1s.
   -d, --diff            Show the diff for the merge commit.
   -v, --visualize       Visualize the merge commit using gitk.
