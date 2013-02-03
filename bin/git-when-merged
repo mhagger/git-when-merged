@@ -250,18 +250,31 @@ class Parser(optparse.OptionParser):
         return self.epilog
 
 
-def get_head_name():
-    """If HEAD is a symbolic reference, return the name of the reference.
+def get_full_name(branch):
+    """Return the full name of the specified commit.
 
-    Otherwise return the string 'HEAD'."""
+    If branch is a symbolic reference, return the name of the
+    reference that it refers to.  If it is an abbreviated reference
+    name (e.g., "master"), return the full reference name (e.g.,
+    "refs/heads/master").  Otherwise, just verify that it is valid,
+    but return the original value."""
 
     try:
-        out = check_output(['git', 'symbolic-ref', '-q', 'HEAD'])
+        full = check_output(
+            ['git', 'rev-parse', '--verify', '-q', '--symbolic-full-name', branch]
+            ).strip()
+        # The above call exits successfully, with no output, if branch
+        # is not a reference at all.  So only use the value if it is
+        # not empty.
+        if full:
+            return full
     except CalledProcessError:
-        # Head must be detached.
-        return 'HEAD'
-    else:
-        return out.strip()
+        pass
+
+    # branch was not a reference, so just verify that it is valid but
+    # leave it in its original form:
+    rev_parse(branch)
+    return branch
 
 
 def main(args):
@@ -365,10 +378,15 @@ def main(args):
             for refname in iter_commit_refs()
             if matches_any(refname, refpatterns)
             )
-    if args:
-        branches.update(args)
+
+    for branch in args:
+        try:
+            branches.add(get_full_name(branch))
+        except Failure, e:
+            sys.exit(e.message)
+
     if not branches:
-        branches.add(get_head_name())
+        branches.add(get_full_name('HEAD'))
 
     for branch in sorted(branches):
         try:
