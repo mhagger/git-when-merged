@@ -31,14 +31,14 @@ Options:
       HEAD is used
 
 Examples:
-  git when-merged abcd                     # Find merge into current branch
-  git when-merged abcd feature-1 feature-2 # Find merge into given branches
-  git when-merged abcd -p feature-[0-9]+   # Specify branches by regex
-  git when-merged abcd -n releases         # Use whenmerged.releases.pattern
-  git when-merged abcd -s                  # Use whenmerged.default.pattern
+  git when-merged 0a1b                     # Find merge into current branch
+  git when-merged 0a1b feature-1 feature-2 # Find merge into given branches
+  git when-merged 0a1b -p feature-[0-9]+   # Specify branches by regex
+  git when-merged 0a1b -n releases         # Use whenmerged.releases.pattern
+  git when-merged 0a1b -s                  # Use whenmerged.default.pattern
 
-  git when-merged abcd -d feature-1        # Show diff for each merge commit
-  git when-merged abcd -v feature-1        # Display merge commit in gitk
+  git when-merged 0a1b -d feature-1        # Show diff for each merge commit
+  git when-merged 0a1b -v feature-1        # Display merge commit in gitk
 
 Configuration:
   whenmerged.<name>.pattern
