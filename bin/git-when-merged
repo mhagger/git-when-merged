@@ -69,6 +69,12 @@ Configuration:
           git config whenmerged.releases.pattern \
                   '^refs/remotes/origin/release\-\d+\.\d+$'
 
+  whenmerged.abbrev
+      If this value is set to a positive integer, then Git SHA1s are
+      abbreviated to this number of characters (or longer if needed to
+      avoid ambiguity).  This value can be overridden using --abbrev=N
+      or --no-abbrev.
+
 Based on:
   http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
 """
@@ -170,9 +176,14 @@ def matches_any(refname, refpatterns):
         )
 
 
-def rev_parse(arg):
+def rev_parse(arg, abbrev=None):
+    if abbrev:
+        cmd = ['git', 'rev-parse', '--verify', '-q', '--short=%d' % (abbrev,), arg]
+    else:
+        cmd = ['git', 'rev-parse', '--verify', '-q', arg]
+
     try:
-        return check_output(['git', 'rev-parse', '--verify', '--quiet', arg]).strip()
+        return check_output(cmd).strip()
     except CalledProcessError:
         raise Failure('%r is not a valid commit!' % (arg,))
 
@@ -192,7 +203,7 @@ def rev_list(*args):
 
 FORMAT = '%(refname)-38s %(msg)s\n'
 
-def find_merge(commit, branch):
+def find_merge(commit, branch, abbrev):
     """Return the SHA1 of the commit that merged commit into branch.
 
     It is assumed that content is always merged in via the second or
@@ -220,7 +231,11 @@ def find_merge(commit, branch):
     if not last:
         sys.stdout.write(FORMAT % dict(refname=branch, msg='Does not contain commit.'))
     else:
-        sys.stdout.write(FORMAT % dict(refname=branch, msg=last))
+        if abbrev is not None:
+            msg = rev_parse(last, abbrev=abbrev)
+        else:
+            msg = last
+        sys.stdout.write(FORMAT % dict(refname=branch, msg=msg))
 
     return last
 
@@ -257,6 +272,13 @@ def main(args):
         epilog=EPILOG,
         )
 
+    try:
+        default_abbrev = int(
+            check_output(['git', 'config', '--int', 'whenmerged.abbrev']).strip()
+            )
+    except CalledProcessError:
+        default_abbrev = None
+
     parser.add_option(
         '--pattern', '-p', metavar='PATTERN',
         action='append', dest='patterns', default=[],
@@ -273,13 +295,26 @@ def main(args):
         help=(
             'Show when COMMIT was merged to the references matching the '
             'configured pattern(s) with the given name (see '
-            'CONFIGURATION below).'
+            'whenmerged.<name>.pattern below under CONFIGURATION).'
             ),
         )
     parser.add_option(
         '--default', '-s',
         action='append_const', dest='names', const='default',
         help='Shorthand for "--name=default".',
+        )
+    parser.add_option(
+        '--abbrev', metavar='N',
+        action='store', type='int', default=default_abbrev,
+        help=(
+            'Abbreviate commit SHA1s to the specified number of characters '
+            '(or more if needed to avoid ambiguity).  '
+            'See also whenmerged.abbrev below under CONFIGURATION.'
+            ),
+        )
+    parser.add_option(
+        '--no-abbrev', dest='abbrev', action='store_const', const=None,
+        help='Do not abbreviate commit SHA1s.',
         )
     parser.add_option(
         '--diff', '-d', action='store_true', default=False,
@@ -294,6 +329,9 @@ def main(args):
 
     if not args:
         parser.error('You must specify a COMMIT argument')
+
+    if options.abbrev is not None and options.abbrev <= 0:
+        options.abbrev = None
 
     commit = args.pop(0)
     # Convert commit into a SHA1:
@@ -334,7 +372,7 @@ def main(args):
 
     for branch in sorted(branches):
         try:
-            merge = find_merge(commit, branch)
+            merge = find_merge(commit, branch, options.abbrev)
         except Failure, e:
             sys.stderr.write('%s\n' % (e.message,))
             continue

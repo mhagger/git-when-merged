@@ -14,8 +14,12 @@ Options:
                         the reference name matching the first group.
   -n NAME, --name=NAME  Show when COMMIT was merged to the references matching
                         the configured pattern(s) with the given name (see
-                        CONFIGURATION below).
+                        whenmerged.<name>.pattern below under CONFIGURATION).
   -s, --default         Shorthand for "--name=default".
+  --abbrev=N            Abbreviate commit SHA1s to the specified number of
+                        characters.  See also whenmerged.abbrev below under
+                        CONFIGURATION.
+  --no-abbrev           Do not abbreviate commit SHA1s.
   -d, --diff            Show the diff for the merge commit.
   -v, --visualize       Visualize the merge commit using gitk.
 
@@ -57,6 +61,12 @@ Configuration:
 
           git config whenmerged.releases.pattern \
                   '^refs/remotes/origin/release\-\d+\.\d+$'
+
+  whenmerged.abbrev
+      If this value is set to a positive integer, then Git SHA1s are
+      abbreviated to this number of characters (or longer if needed to
+      avoid ambiguity).  This value can be overridden using --abbrev=N
+      or --no-abbrev.
 
 Based on:
   http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
