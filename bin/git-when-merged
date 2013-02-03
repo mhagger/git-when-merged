@@ -139,6 +139,8 @@ def rev_list(*args):
         raise Failure('git rev-list %s failed' % (' '.join(args),))
 
 
+FORMAT = '%(refname)-30s %(msg)s\n'
+
 def find_merge(commit, branch, abbrev):
     """Return the SHA1 of the commit that merged commit into branch.
 
@@ -148,7 +150,7 @@ def find_merge(commit, branch, abbrev):
     try:
         branch_sha1 = rev_parse(branch)
     except Failure, e:
-        sys.stdout.write('%-30s Is not a valid commit!\n' % (abbrev,))
+        sys.stdout.write(FORMAT % dict(refname=abbrev, msg='Is not a valid commit!'))
         return None
 
     branch_commits = set(
@@ -156,7 +158,7 @@ def find_merge(commit, branch, abbrev):
         )
 
     if commit in branch_commits:
-        sys.stdout.write('%-30s Commit is directly on this branch.\n' % (abbrev,))
+        sys.stdout.write(FORMAT % dict(refname=abbrev, msg='Commit is directly on this branch.'))
         return None
 
     last = None
@@ -165,9 +167,9 @@ def find_merge(commit, branch, abbrev):
             last = commit
 
     if not last:
-        sys.stdout.write('%-30s Does not contain commit.\n' % (abbrev,))
+        sys.stdout.write(FORMAT % dict(refname=abbrev, msg='Does not contain commit.'))
     else:
-        sys.stdout.write('%-30s %s\n' % (abbrev, last,))
+        sys.stdout.write(FORMAT % dict(refname=abbrev, msg=last))
 
     return last
 
