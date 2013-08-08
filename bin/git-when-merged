@@ -118,7 +118,11 @@ except ImportError:
             cmd = kwargs.get("args")
             if cmd is None:
                 cmd = popenargs[0]
-            raise CalledProcessError(retcode, cmd, output=output)
+            try:
+                raise CalledProcessError(retcode, cmd, output=output)
+            except TypeError:
+                # Python 2.6's CalledProcessError has no 'output' kw
+                raise CalledProcessError(retcode, cmd)
         return output
 
 
