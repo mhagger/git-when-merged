@@ -1,4 +1,23 @@
-#! /usr/bin/python2
+#! /bin/sh
+# -*- mode: python; coding: utf-8 -*-
+
+# This file is used as both a shell script and as a Python script.
+
+""":"
+# This part is run by the shell.  It looks for an appropriate Python
+# interpreter then uses it to re-exec this script.
+
+path=$(which python2 || which python)
+if [ -x "$path" ]
+then
+  PYTHON=$path
+else
+  echo 1>&2 "No usable Python interpreter was found!"
+  exit 1
+fi
+
+exec $PYTHON "$0" "$@"
+" """
 
 # Copyright (c) 2013 Michael Haggerty
 #
