@@ -36,6 +36,7 @@ exec $PYTHON "$0" "$@"
 
 # Run "git when-merged --help for the documentation.
 
+__doc__ = \
 """Find when a commit was merged into one or more branches.
 
 Find the merge commit that brought COMMIT into the specified
