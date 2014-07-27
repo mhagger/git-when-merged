@@ -105,10 +105,8 @@ import subprocess
 import optparse
 
 
-# This upper end of this test doesn't actually work, because the
-# syntax of this script is not valid Python 3.
-if not (0x02060000 <= sys.hexversion < 0x03000000):
-    sys.exit('Python 2, version 2.6 or later is required')
+if not (0x02060000 <= sys.hexversion):
+    sys.exit('Python version 2.6 or later is required')
 
 
 # Backwards compatibility:
@@ -150,10 +148,30 @@ class Failure(Exception):
     pass
 
 
+def _decode_output(value):
+    """Decodes Git output into a unicode string.
+
+    On Python 2 this is a no-op; on Python 3 we decode the string as
+    suggested by [1] since we know that Git treats paths as just a sequence
+    of bytes and all of the output we ask Git for is expected to be a file
+    system path.
+
+    [1] http://docs.python.org/3/c-api/unicode.html#file-system-encoding
+
+    """
+    if sys.hexversion < 0x3000000:
+        return value
+    return value.decode(sys.getfilesystemencoding(), 'surrogateescape')
+
+
+def check_git_output(*popenargs, **kwargs):
+    return _decode_output(check_output(*popenargs, **kwargs))
+
+
 def read_refpatterns(name):
     key = 'whenmerged.%s.pattern' % (name,)
     try:
-        out = check_output(['git', 'config', '--get-all', '--null', key])
+        out = check_git_output(['git', 'config', '--get-all', '--null', key])
     except CalledProcessError:
         raise Failure('There is no configuration setting for %r!' % (key,))
     retval = []
@@ -183,7 +201,7 @@ def iter_commit_refs():
         stdout=subprocess.PIPE,
         )
     for line in process.stdout:
-        words = line.strip().split()
+        words = _decode_output(line).strip().split()
         refname = words.pop(0)
         if words == ['commit'] or words == ['tag', 'commit']:
             yield refname
@@ -207,7 +225,7 @@ def rev_parse(arg, abbrev=None):
         cmd = ['git', 'rev-parse', '--verify', '-q', arg]
 
     try:
-        return check_output(cmd).strip()
+        return check_git_output(cmd).strip()
     except CalledProcessError:
         raise Failure('%r is not a valid commit!' % (arg,))
 
@@ -218,7 +236,7 @@ def rev_list(*args):
         stdout=subprocess.PIPE,
         )
     for line in process.stdout:
-        yield line.strip()
+        yield _decode_output(line).strip()
 
     retcode = process.wait()
     if retcode:
@@ -284,7 +302,7 @@ def get_full_name(branch):
     but return the original value."""
 
     try:
-        full = check_output(
+        full = check_git_output(
             ['git', 'rev-parse', '--verify', '-q', '--symbolic-full-name', branch]
             ).strip()
         # The above call exits successfully, with no output, if branch
@@ -311,7 +329,7 @@ def main(args):
 
     try:
         default_abbrev = int(
-            check_output(['git', 'config', '--int', 'whenmerged.abbrev']).strip()
+            check_git_output(['git', 'config', '--int', 'whenmerged.abbrev']).strip()
             )
     except CalledProcessError:
         default_abbrev = None
