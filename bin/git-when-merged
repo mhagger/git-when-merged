@@ -107,8 +107,8 @@ import optparse
 
 # This upper end of this test doesn't actually work, because the
 # syntax of this script is not valid Python 3.
-if not (0x02050000 <= sys.hexversion < 0x03000000):
-    sys.exit('Python 2, version 2.5 or later is required')
+if not (0x02060000 <= sys.hexversion < 0x03000000):
+    sys.exit('Python 2, version 2.6 or later is required')
 
 
 # Backwards compatibility:
@@ -161,7 +161,7 @@ def read_refpatterns(name):
         if value:
             try:
                 retval.append(re.compile(value))
-            except re.error, e:
+            except re.error as e:
                 sys.stderr.write(
                     'Error compiling branch pattern %r; ignoring: %s\n'
                     % (value, e.message,)
@@ -235,7 +235,7 @@ def find_merge(commit, branch, abbrev):
 
     try:
         branch_sha1 = rev_parse(branch)
-    except Failure, e:
+    except Failure as e:
         sys.stdout.write(FORMAT % dict(refname=branch, msg='Is not a valid commit!'))
         return None
 
@@ -374,7 +374,7 @@ def main(args):
     # Convert commit into a SHA1:
     try:
         commit = rev_parse(commit)
-    except Failure, e:
+    except Failure as e:
         sys.exit(e.message)
 
     refpatterns = []
@@ -382,7 +382,7 @@ def main(args):
     for value in options.patterns:
         try:
             refpatterns.append(re.compile(value))
-        except re.error, e:
+        except re.error as e:
             sys.stderr.write(
                 'Error compiling pattern %r; ignoring: %s\n'
                 % (value, e.message,)
@@ -391,7 +391,7 @@ def main(args):
     for value in options.names:
         try:
             refpatterns.extend(read_refpatterns(value))
-        except Failure, e:
+        except Failure as e:
             sys.exit(e.message)
 
     branches = set()
@@ -406,7 +406,7 @@ def main(args):
     for branch in args:
         try:
             branches.add(get_full_name(branch))
-        except Failure, e:
+        except Failure as e:
             sys.exit(e.message)
 
     if not branches:
@@ -415,7 +415,7 @@ def main(args):
     for branch in sorted(branches):
         try:
             merge = find_merge(commit, branch, options.abbrev)
-        except Failure, e:
+        except Failure as e:
             sys.stderr.write('%s\n' % (e.message,))
             continue
 
