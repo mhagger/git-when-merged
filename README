@@ -1,8 +1,8 @@
 Installation
 ------------
 Clone the repo somewhere on your system.
-Ensure that bin/git-when-merged is executable.
-Put the contents of /bin on your PATH. That's it!
+Ensure that <somewhere>/bin/git-when-merged is executable.
+Put the contents of <somewhere>/bin on your $PATH. That's it!
 
 Usage
 ----------
