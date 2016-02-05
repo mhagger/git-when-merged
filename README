@@ -4,6 +4,13 @@ Clone the repo somewhere on your system.
 Ensure that <somewhere>/bin/git-when-merged is executable.
 Put the contents of <somewhere>/bin on your $PATH. That's it!
 
+Or using Homebrew:
+
+```
+$ brew update
+$ brew install git-when-merged
+```
+
 Usage
 ----------
 git when-merged [OPTIONS] COMMIT [BRANCH...]
