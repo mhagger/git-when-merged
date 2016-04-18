@@ -17,6 +17,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Run "git when-merged --help for the documentation.
+# See https://github.com/mhagger/git-when-merged for the project.
 
 """Find when a commit was merged into one or more branches.
 
