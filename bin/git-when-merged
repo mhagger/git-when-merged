@@ -214,6 +214,13 @@ def rev_parse(arg, abbrev=None):
 
 
 def rev_list(*args):
+    """Iterate over (commit, [parent,...]) for the selected commits.
+
+    args are passed as arguments to "git rev-list" to select which
+    commits should be iterated over.
+
+    """
+
     process = subprocess.Popen(
         ['git', 'rev-list'] + list(args) + ['--'],
         stdout=subprocess.PIPE,
