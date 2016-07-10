@@ -275,9 +275,24 @@ class CommitGraph:
             commit = parents[0]
 
 
-FORMAT = '%(refname)-38s %(msg)s\n'
+class MergeNotFoundError(Exception):
+    def __init__(self, refname):
+        self.refname = refname
 
-def find_merge(commit, branch, abbrev):
+
+class InvalidCommitError(MergeNotFoundError):
+    msg = 'Is not a valid commit!'
+
+
+class DoesNotContainCommitError(MergeNotFoundError):
+    msg = 'Does not contain commit.'
+
+
+class DirectlyOnBranchError(MergeNotFoundError):
+    msg = 'Commit is directly on this branch.'
+
+
+def find_merge(commit, branch):
     """Return the SHA1 of the commit that merged commit into branch.
 
     It is assumed that content is always merged in via the second or
@@ -285,16 +300,14 @@ def find_merge(commit, branch, abbrev):
 
     try:
         branch_sha1 = rev_parse(branch)
-    except Failure as e:
-        sys.stdout.write(FORMAT % dict(refname=branch, msg='Is not a valid commit!'))
-        return None
+    except Failure:
+        raise InvalidCommitError(branch)
 
     commit_graph = CommitGraph('--ancestry-path', '%s..%s' % (commit, branch_sha1))
     branch_commits = list(commit_graph.first_parent_path(branch_sha1))
 
     if not branch_commits:
-        sys.stdout.write(FORMAT % dict(refname=branch, msg='Does not contain commit.'))
-        return None
+        raise DoesNotContainCommitError(branch)
 
     # The last entry in branch_commits is the one that merged in
     # commit.
@@ -302,14 +315,7 @@ def find_merge(commit, branch, abbrev):
     parents = commit_graph[last]
 
     if parents[0] == commit:
-        sys.stdout.write(FORMAT % dict(refname=branch, msg='Commit is directly on this branch.'))
-        return None
-
-    if abbrev is not None:
-        msg = rev_parse(last, abbrev=abbrev)
-    else:
-        msg = last
-    sys.stdout.write(FORMAT % dict(refname=branch, msg=msg))
+        raise DirectlyOnBranchError(branch)
 
     return last
 
@@ -349,6 +355,9 @@ def get_full_name(branch):
     # leave it in its original form:
     rev_parse(branch)
     return branch
+
+
+FORMAT = '%(refname)-38s %(msg)s\n'
 
 
 def main(args):
@@ -468,20 +477,28 @@ def main(args):
 
     for branch in sorted(branches):
         try:
-            merge = find_merge(commit, branch, options.abbrev)
+            merge = find_merge(commit, branch)
+        except MergeNotFoundError as e:
+            sys.stdout.write(FORMAT % dict(refname=e.refname, msg=e.msg))
+            continue
         except Failure as e:
             sys.stderr.write('%s\n' % (e.message,))
             continue
 
-        if merge:
-            if options.log:
-                subprocess.check_call(['git', '--no-pager', 'log', '--no-walk', merge])
+        if options.abbrev is not None:
+            msg = rev_parse(merge, abbrev=options.abbrev)
+        else:
+            msg = merge
+        sys.stdout.write(FORMAT % dict(refname=branch, msg=msg))
 
-            if options.diff:
-                subprocess.check_call(['git', '--no-pager', 'show', merge])
+        if options.log:
+            subprocess.check_call(['git', '--no-pager', 'log', '--no-walk', merge])
 
-            if options.visualize:
-                subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
+        if options.diff:
+            subprocess.check_call(['git', '--no-pager', 'show', merge])
+
+        if options.visualize:
+            subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
 
 
 main(sys.argv[1:])
