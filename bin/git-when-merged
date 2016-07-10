@@ -420,7 +420,7 @@ def main(args):
 
         if merge:
             if options.diff:
-                subprocess.check_call(['git', 'show', merge])
+                subprocess.check_call(['git', '--no-pager', 'show', merge])
 
             if options.visualize:
                 subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
