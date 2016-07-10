@@ -233,6 +233,48 @@ def rev_list(*args):
         raise Failure('git rev-list %s failed' % (' '.join(args),))
 
 
+def rev_list_with_parents(*args):
+    cmd = ['git', 'log', '--format=%H %P'] + list(args) + ['--']
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    for line in process.stdout:
+        words = _decode_output(line).strip().split()
+        yield (words[0], words[1:])
+
+    retcode = process.wait()
+    if retcode:
+        raise Failure('command "%s" failed' % (' '.join(cmd),))
+
+
+class CommitGraph:
+    def __init__(self, *args):
+        self.commits = dict(rev_list_with_parents(*args))
+
+    def __contains__(self, commit):
+        return commit in self.commits
+
+    def __getitem__(self, commit):
+        return self.commits[commit]
+
+    def first_parent_path(self, commit):
+        """Iterate over the commits in the first-parent ancestry of commit.
+
+        Iterate over the commits that are within this CommitGraph that
+        are also in the first-parent ancestry of the specified commit.
+        commit must be a full 40-character SHA-1.
+
+        """
+
+        while True:
+            try:
+                parents = self[commit]
+            except KeyError:
+                return
+            yield commit
+            if not parents:
+                return
+            commit = parents[0]
+
+
 FORMAT = '%(refname)-38s %(msg)s\n'
 
 def find_merge(commit, branch, abbrev):
@@ -247,27 +289,27 @@ def find_merge(commit, branch, abbrev):
         sys.stdout.write(FORMAT % dict(refname=branch, msg='Is not a valid commit!'))
         return None
 
-    branch_commits = set(
-        rev_list('--first-parent', branch_sha1, '--not', '%s^@' % (commit,))
-        )
+    commit_graph = CommitGraph('--ancestry-path', '%s..%s' % (commit, branch_sha1))
+    branch_commits = list(commit_graph.first_parent_path(branch_sha1))
 
-    if commit in branch_commits:
+    if not branch_commits:
+        sys.stdout.write(FORMAT % dict(refname=branch, msg='Does not contain commit.'))
+        return None
+
+    # The last entry in branch_commits is the one that merged in
+    # commit.
+    last = branch_commits[-1]
+    parents = commit_graph[last]
+
+    if parents[0] == commit:
         sys.stdout.write(FORMAT % dict(refname=branch, msg='Commit is directly on this branch.'))
         return None
 
-    last = None
-    for commit in rev_list('--ancestry-path', '%s..%s' % (commit, branch_sha1,)):
-        if commit in branch_commits:
-            last = commit
-
-    if not last:
-        sys.stdout.write(FORMAT % dict(refname=branch, msg='Does not contain commit.'))
+    if abbrev is not None:
+        msg = rev_parse(last, abbrev=abbrev)
     else:
-        if abbrev is not None:
-            msg = rev_parse(last, abbrev=abbrev)
-        else:
-            msg = last
-        sys.stdout.write(FORMAT % dict(refname=branch, msg=msg))
+        msg = last
+    sys.stdout.write(FORMAT % dict(refname=branch, msg=msg))
 
     return last
 
