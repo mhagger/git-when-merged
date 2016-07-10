@@ -50,6 +50,9 @@ Examples:
   git when-merged 0a1b -n releases         # Use whenmerged.releases.pattern
   git when-merged 0a1b -s                  # Use whenmerged.default.pattern
 
+  git when-merged 0a1b -r feature-1        # If merged indirectly, show all
+                                           # merges involved.
+
   git when-merged 0a1b -l feature-1        # Show log for the merge commit
   git when-merged 0a1b -d feature-1        # Show diff for the merge commit
   git when-merged 0a1b -v feature-1        # Display merge commit in gitk
@@ -292,6 +295,12 @@ class DirectlyOnBranchError(MergeNotFoundError):
     msg = 'Commit is directly on this branch.'
 
 
+class MergedViaMultipleParentsError(MergeNotFoundError):
+    def __init__(self, refname, parents):
+        MergeNotFoundError.__init__(self, refname)
+        self.msg = 'Merged via multiple parents: %s' % (' '.join(parents),)
+
+
 def find_merge(commit, branch):
     """Return the SHA1 of the commit that merged commit into branch.
 
@@ -304,20 +313,38 @@ def find_merge(commit, branch):
         raise InvalidCommitError(branch)
 
     commit_graph = CommitGraph('--ancestry-path', '%s..%s' % (commit, branch_sha1))
-    branch_commits = list(commit_graph.first_parent_path(branch_sha1))
 
-    if not branch_commits:
-        raise DoesNotContainCommitError(branch)
+    while True:
+        branch_commits = list(commit_graph.first_parent_path(branch_sha1))
 
-    # The last entry in branch_commits is the one that merged in
-    # commit.
-    last = branch_commits[-1]
-    parents = commit_graph[last]
+        if not branch_commits:
+            raise DoesNotContainCommitError(branch)
 
-    if parents[0] == commit:
-        raise DirectlyOnBranchError(branch)
+        # The last entry in branch_commits is the one that merged in
+        # commit.
+        last = branch_commits[-1]
+        parents = commit_graph[last]
 
-    return last
+        if parents[0] == commit:
+            raise DirectlyOnBranchError(branch)
+
+        yield last
+
+        if commit in parents:
+            # The commit was merged in directly:
+            return
+
+        # Find which parent(s) merged in the commit:
+        parents = [
+            parent
+            for parent in parents
+            if parent in commit_graph
+            ]
+        assert(parents)
+        if len(parents) > 1:
+            raise MergedViaMultipleParentsError(branch, parents)
+
+        [branch_sha1] = parents
 
 
 class Parser(optparse.OptionParser):
@@ -400,6 +427,11 @@ def main(args):
         help='Shorthand for "--name=default".',
         )
     parser.add_option(
+        '--recursive', '-r',
+        action='store_true',
+        help='Follow merges back recursively.',
+        )
+    parser.add_option(
         '--abbrev', metavar='N',
         action='store', type='int', default=default_abbrev,
         help=(
@@ -476,29 +508,45 @@ def main(args):
         branches.add(get_full_name('HEAD'))
 
     for branch in sorted(branches):
+        first = True
         try:
-            merge = find_merge(commit, branch)
+            for merge in find_merge(commit, branch):
+                if options.abbrev is not None:
+                    msg = rev_parse(merge, abbrev=options.abbrev)
+                else:
+                    msg = merge
+
+                if first:
+                    sys.stdout.write(FORMAT % dict(refname=branch, msg=msg))
+                else:
+                    sys.stdout.write(FORMAT % dict(refname='', msg='via %s' % (msg,)))
+
+                if options.log:
+                    subprocess.check_call(['git', '--no-pager', 'log', '--no-walk', merge])
+
+                if options.diff:
+                    subprocess.check_call(['git', '--no-pager', 'show', merge])
+
+                if options.visualize:
+                    subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
+
+                if options.recursive:
+                    first = False
+                else:
+                    break
+
+        except DirectlyOnBranchError as e:
+            if first:
+                sys.stdout.write(FORMAT % dict(refname=e.refname, msg=e.msg))
+        except MergedViaMultipleParentsError as e:
+            if first:
+                sys.stdout.write(FORMAT % dict(refname=e.refname, msg=e.msg))
+            else:
+                sys.stdout.write(FORMAT % dict(refname='', msg=e.msg))
         except MergeNotFoundError as e:
             sys.stdout.write(FORMAT % dict(refname=e.refname, msg=e.msg))
-            continue
         except Failure as e:
             sys.stderr.write('%s\n' % (e.message,))
-            continue
-
-        if options.abbrev is not None:
-            msg = rev_parse(merge, abbrev=options.abbrev)
-        else:
-            msg = merge
-        sys.stdout.write(FORMAT % dict(refname=branch, msg=msg))
-
-        if options.log:
-            subprocess.check_call(['git', '--no-pager', 'log', '--no-walk', merge])
-
-        if options.diff:
-            subprocess.check_call(['git', '--no-pager', 'show', merge])
-
-        if options.visualize:
-            subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
 
 
 main(sys.argv[1:])

@@ -31,6 +31,7 @@ Options:
                         the configured pattern(s) with the given name (see
                         whenmerged.<name>.pattern below under CONFIGURATION).
   -s, --default         Shorthand for "--name=default".
+  -r, --recursive       Follow merges back recursively.
   --abbrev=N            Abbreviate commit SHA1s to the specified number of
                         characters (or more if needed to avoid ambiguity).
                         See also whenmerged.abbrev below under CONFIGURATION.
@@ -56,6 +57,9 @@ Examples:
   git when-merged 0a1b -p feature-[0-9]+   # Specify branches by regex
   git when-merged 0a1b -n releases         # Use whenmerged.releases.pattern
   git when-merged 0a1b -s                  # Use whenmerged.default.pattern
+
+  git when-merged 0a1b -r feature-1        # If merged indirectly, show all
+                                           # merges involved.
 
   git when-merged 0a1b -d feature-1        # Show diff for each merge commit
   git when-merged 0a1b -v feature-1        # Display merge commit in gitk
