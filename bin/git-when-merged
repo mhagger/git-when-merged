@@ -50,7 +50,8 @@ Examples:
   git when-merged 0a1b -n releases         # Use whenmerged.releases.pattern
   git when-merged 0a1b -s                  # Use whenmerged.default.pattern
 
-  git when-merged 0a1b -d feature-1        # Show diff for each merge commit
+  git when-merged 0a1b -l feature-1        # Show log for the merge commit
+  git when-merged 0a1b -d feature-1        # Show diff for the merge commit
   git when-merged 0a1b -v feature-1        # Display merge commit in gitk
 
 Configuration:
@@ -354,6 +355,10 @@ def main(args):
         help='Do not abbreviate commit SHA1s.',
         )
     parser.add_option(
+        '--log', '-l', action='store_true', default=False,
+        help='Show the log for the merge commit.',
+        )
+    parser.add_option(
         '--diff', '-d', action='store_true', default=False,
         help='Show the diff for the merge commit.',
         )
@@ -420,8 +425,11 @@ def main(args):
             continue
 
         if merge:
+            if options.log:
+                subprocess.check_call(['git', '--no-pager', 'log', '--no-walk', merge])
+
             if options.diff:
-                subprocess.check_call(['git', 'show', merge])
+                subprocess.check_call(['git', '--no-pager', 'show', merge])
 
             if options.visualize:
                 subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
