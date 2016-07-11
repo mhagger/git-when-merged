@@ -1,25 +1,57 @@
-Installation
-------------
-Clone the repo somewhere on your system.
-Ensure that <somewhere>/bin/git-when-merged is executable.
-Put the contents of <somewhere>/bin on your $PATH. That's it!
+# `git when-merged`
 
-Or using Homebrew:
+`git when-merged` helps you figure out when and why a commit was merged into a branch.
 
+If you use standard Git workflows, then you create a feature branch for each feature that you are working on. When the feature is complete, you merge it into your `master` branch. You might even have sub-feature branches that are merged into a feature branch before the latter is merged.
+
+In such a workflow, the first-parent history of `master` consists mainly of merges of feature branches into the mainline. `git when-merged` can be used to ask, "When (and why) was commit C merged into the current branch?" The simplest way to use it is
+
+```ShellSession
+$ git when-merged 87c248f
+refs/heads/master                      50f577451448a407ee8e78ed62aa09d209c91652
 ```
+
+This command looks along the first-parent history of the current branch to find the merge commit that first brought commit `87c248f` into the branch's history. The guilty merge commit in this case is `50f5774`. Add the `-l` option to see the log for that merge, which will hopefully explain what feature was being merged and by whom:
+
+```ShellSession
+$ git when-merged -l 87c248f
+refs/heads/master                      50f577451448a407ee8e78ed62aa09d209c91652
+commit 50f577451448a407ee8e78ed62aa09d209c91652 (github/master, master)
+Merge: f79a45d 87c248f
+Author: Michael Haggerty <mhagger@alum.mit.edu>
+Date:   Mon Jul 11 07:55:19 2016 +0200
+
+    Merge pull request #9 from mhagger/recursive-option
+
+    Add a `--recursive`/`-r` option
+```
+
+There are many more options; see below.
+
+
+## Installation
+
+* Clone the repo somewhere on your system.
+* Ensure that `<somewhere>/bin/git-when-merged` is executable.
+* Put the contents of `<somewhere>/bin` on your `$PATH`.
+
+That's it!
+
+Or, using Homebrew:
+
+```ShellSession
 $ brew update
 $ brew install git-when-merged
 ```
 
-Usage
-----------
-git when-merged [OPTIONS] COMMIT [BRANCH...]
 
-Find when a commit was merged into one or more branches.  Find the merge
-commit that brought COMMIT into the specified BRANCH(es).  Specificially, look
-for the oldest commit on the first-parent history of BRANCH that contains the
-COMMIT as an ancestor.
+## Usage
 
+    git when-merged [OPTIONS] COMMIT [BRANCH...]
+
+Find the merge commit that brought `COMMIT` into the specified `BRANCH`(es). Specifically, look for the oldest commit on the first-parent history of each `BRANCH` that contains the `COMMIT` as an ancestor.
+
+```
 Options:
   -h, --help            show this help message and exit
   -p PATTERN, --pattern=PATTERN
@@ -61,7 +93,8 @@ Examples:
   git when-merged 0a1b -r feature-1        # If merged indirectly, show all
                                            # merges involved.
 
-  git when-merged 0a1b -d feature-1        # Show diff for each merge commit
+  git when-merged 0a1b -l feature-1        # Show log for the merge commit
+  git when-merged 0a1b -d feature-1        # Show diff for the merge commit
   git when-merged 0a1b -v feature-1        # Display merge commit in gitk
 
 Configuration:
@@ -87,6 +120,7 @@ Configuration:
       abbreviated to this number of characters (or longer if needed to
       avoid ambiguity).  This value can be overridden using --abbrev=N
       or --no-abbrev.
+```
 
-Based on:
-  http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
+`git when-merged` is originally based on [the suggestion here](http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit).
+
