@@ -12,13 +12,13 @@ $ brew install git-when-merged
 ```
 
 Usage
-----------
+-----
 git when-merged [OPTIONS] COMMIT [BRANCH...]
 
-Find when a commit was merged into one or more branches.  Find the merge
-commit that brought COMMIT into the specified BRANCH(es).  Specificially, look
-for the oldest commit on the first-parent history of BRANCH that contains the
-COMMIT as an ancestor.
+Find the merge commit that brought COMMIT into the specified
+BRANCH(es). Specifically, look for the oldest commit on the
+first-parent history of each BRANCH that contains the COMMIT as an
+ancestor.
 
 Options:
   -h, --help            show this help message and exit
@@ -61,7 +61,8 @@ Examples:
   git when-merged 0a1b -r feature-1        # If merged indirectly, show all
                                            # merges involved.
 
-  git when-merged 0a1b -d feature-1        # Show diff for each merge commit
+  git when-merged 0a1b -l feature-1        # Show log for the merge commit
+  git when-merged 0a1b -d feature-1        # Show diff for the merge commit
   git when-merged 0a1b -v feature-1        # Display merge commit in gitk
 
 Configuration:

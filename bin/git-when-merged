@@ -22,8 +22,8 @@
 """Find when a commit was merged into one or more branches.
 
 Find the merge commit that brought COMMIT into the specified
-BRANCH(es).  Specificially, look for the oldest commit on the
-first-parent history of BRANCH that contains the COMMIT as an
+BRANCH(es). Specifically, look for the oldest commit on the
+first-parent history of each BRANCH that contains the COMMIT as an
 ancestor.
 
 """
