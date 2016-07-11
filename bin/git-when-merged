@@ -49,7 +49,8 @@ Examples:
   git when-merged 0a1b -n releases         # Use whenmerged.releases.pattern
   git when-merged 0a1b -s                  # Use whenmerged.default.pattern
 
-  git when-merged 0a1b -d feature-1        # Show diff for each merge commit
+  git when-merged 0a1b -l feature-1        # Show log for the merge commit
+  git when-merged 0a1b -d feature-1        # Show diff for the merge commit
   git when-merged 0a1b -v feature-1        # Display merge commit in gitk
 
 Configuration:

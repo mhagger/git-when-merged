@@ -28,6 +28,7 @@ Options:
                         characters (or more if needed to avoid ambiguity).
                         See also whenmerged.abbrev below under CONFIGURATION.
   --no-abbrev           Do not abbreviate commit SHA1s.
+  -l, --log             Show the log for the merge commit.
   -d, --diff            Show the diff for the merge commit.
   -v, --visualize       Visualize the merge commit using gitk.
 
