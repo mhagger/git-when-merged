@@ -33,36 +33,38 @@ USAGE = r"""git when-merged [OPTIONS] COMMIT [BRANCH...]
 
 EPILOG = r"""
 Examples:
-  git when-merged 0a1b                     # Find merge into current branch
-  git when-merged 0a1b feature-1 feature-2 # Find merge into given branches
-  git when-merged 0a1b -p feature-[0-9]+   # Specify branches by regex
-  git when-merged 0a1b -n releases         # Use whenmerged.releases.pattern
-  git when-merged 0a1b -s                  # Use whenmerged.default.pattern
+  git when-merged 0a1b                   # Find the merge commit that brought
+                                         # commit 0a1b into the current branch
+  git when-merged 0a1b v1.10 v1.11       # Find merge into given tags/branches
+  git when-merged 0a1b -p feature-[0-9]+ # Specify tags/branches by regex
+  git when-merged 0a1b -n releases       # Use whenmerged.releases.pattern
+  git when-merged 0a1b -s                # Use whenmerged.default.pattern
 
-  git when-merged 0a1b -r feature-1        # If merged indirectly, show all
-                                           # merges involved.
-
-  git when-merged 0a1b -l feature-1        # Show log for the merge commit
-  git when-merged 0a1b -d feature-1        # Show diff for the merge commit
-  git when-merged 0a1b -v feature-1        # Display merge commit in gitk
+  git when-merged -r 0a1b                # If the commit was merged indirectly,
+                                         # show each intermediate merge.
+  git when-merged -l 0a1b                # Show the log for the merge commit
+  git when-merged -lb 0a1b               # Show log for the whole merged branch
+  git when-merged -v 0a1b                # Visualize the merge commit in gitk
+  git when-merged -vb 0a1b               # Visualize the whole merged branch
+  git when-merged -d 0a1b                # Show the diff for the merge commit
+  git when-merged -c 0a1b                # Print only the merge's SHA-1
 
 Configuration:
   whenmerged.<name>.pattern
       Regular expressions that match reference names for the pattern
       called <name>.  A regexp is sought in the full reference name,
-      in the form "refs/heads/master".  This option can be
-      multivalued, in which case references matching any of the
-      patterns are considered.  Typically you will use pattern(s) that
-      match master and/or significant release branches, or perhaps
-      their remote-tracking equivalents.  For example,
+      in the form "refs/heads/master".  This option can be multivalued, in
+      which case references matching any of the patterns are considered.
+      Typically the pattern will be chosen to match master and/or significant
+      release branches or tags, or perhaps their remote-tracking equivalents.
+      For example,
 
-          git config whenmerged.default.pattern \
-                  '^refs/heads/master$'
+          git config whenmerged.default.pattern '^refs/heads/master$'
+          git config --add whenmerged.default.pattern '^refs/heads/maint$'
 
       or
 
-          git config whenmerged.releases.pattern \
-                  '^refs/remotes/origin/release\-\d+\.\d+$'
+          git config whenmerged.releases.pattern '^refs/tags/release-'
 
   whenmerged.abbrev
       If this value is set to a positive integer, then Git SHA-1s are
@@ -70,7 +72,7 @@ Configuration:
       avoid ambiguity).  This value can be overridden using --abbrev=N
       or --no-abbrev.
 
-Based on:
+Originally based on:
   http://stackoverflow.com/questions/8475448/find-merge-commit-which-include-a-specific-commit
 """
 
