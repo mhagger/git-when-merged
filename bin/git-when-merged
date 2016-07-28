@@ -363,7 +363,10 @@ def get_full_name(branch):
     return branch
 
 
-FORMAT = '%(refname)-38s %(msg)s\n'
+FIRST_FORMAT = '%(refname)-38s %(sha1)s'
+OTHER_FORMAT = FIRST_FORMAT % dict(refname='', sha1='via %(sha1)s')
+
+WARN_FORMAT = '%(refname)-38s %(msg)s'
 
 
 def main(args):
@@ -500,25 +503,25 @@ def main(args):
     for branch in sorted(branches):
         first = True
         try:
-            for merge in find_merge(commit, branch):
+            for sha1 in find_merge(commit, branch):
                 if options.abbrev is not None:
-                    msg = rev_parse(merge, abbrev=options.abbrev)
-                else:
-                    msg = merge
+                    sha1 = rev_parse(sha1, abbrev=options.abbrev)
 
                 if first:
-                    sys.stdout.write(FORMAT % dict(refname=branch, msg=msg))
+                    format = FIRST_FORMAT
                 else:
-                    sys.stdout.write(FORMAT % dict(refname='', msg='via %s' % (msg,)))
+                    format = OTHER_FORMAT
+
+                sys.stdout.write(format % dict(refname=branch, sha1=sha1) + '\n')
 
                 if options.log:
-                    subprocess.check_call(['git', '--no-pager', 'log', '--no-walk', merge])
+                    subprocess.check_call(['git', '--no-pager', 'log', '--no-walk', sha1])
 
                 if options.diff:
-                    subprocess.check_call(['git', '--no-pager', 'show', merge])
+                    subprocess.check_call(['git', '--no-pager', 'show', sha1])
 
                 if options.visualize:
-                    subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (merge,)])
+                    subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (sha1,)])
 
                 if options.recursive:
                     first = False
@@ -527,16 +530,16 @@ def main(args):
 
         except DirectlyOnBranchError as e:
             if first:
-                sys.stdout.write(FORMAT % dict(refname=e.refname, msg=e.msg))
+                sys.stdout.write(WARN_FORMAT % dict(refname=e.refname, msg=e.msg) + '\n')
         except MergedViaMultipleParentsError as e:
             if first:
-                sys.stdout.write(FORMAT % dict(refname=e.refname, msg=e.msg))
+                sys.stdout.write(WARN_FORMAT % dict(refname=e.refname, msg=e.msg) + '\n')
             else:
-                sys.stdout.write(FORMAT % dict(refname='', msg=e.msg))
+                sys.stdout.write(WARN_FORMAT % dict(refname='', msg=e.msg) + '\n')
         except MergeNotFoundError as e:
-            sys.stdout.write(FORMAT % dict(refname=e.refname, msg=e.msg))
+            sys.stdout.write(WARN_FORMAT % dict(refname=e.refname, msg=e.msg) + '\n')
         except Failure as e:
-            sys.stderr.write('%s\n' % (e.message,))
+            sys.stderr.write('%s' % (e.message,))
 
 
 main(sys.argv[1:])
