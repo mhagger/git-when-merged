@@ -73,6 +73,9 @@ optional arguments:
                         whenmerged.<name>.pattern below under CONFIGURATION).
   --default, -s         Shorthand for "--name=default".
   --recursive, -r       Follow merges back recursively.
+  --show-commit, -c     Display only the SHA-1 of the merge commit. Exit with
+                        a nonzero exit code if the commit was not merged via a
+                        merge commit.
   --abbrev N            Abbreviate commit SHA-1s to the specified number of
                         characters (or more if needed to avoid ambiguity). See
                         also whenmerged.abbrev below under CONFIGURATION.

@@ -366,6 +366,8 @@ def get_full_name(branch):
 FIRST_FORMAT = '%(refname)-38s %(sha1)s'
 OTHER_FORMAT = FIRST_FORMAT % dict(refname='', sha1='via %(sha1)s')
 
+COMMIT_FORMAT = '%(sha1)s'
+
 WARN_FORMAT = '%(refname)-38s %(msg)s'
 
 
@@ -415,6 +417,14 @@ def main(args):
         help='Follow merges back recursively.',
         )
     parser.add_argument(
+        '--show-commit', '-c', action='store_true',
+        help=(
+            'Display only the SHA-1 of the merge commit. '
+            'Exit with a nonzero exit code if the commit was not merged '
+            'via a merge commit.'
+            ),
+        )
+    parser.add_argument(
         '--abbrev', metavar='N',
         action='store', type=int, default=default_abbrev,
         help=(
@@ -458,6 +468,14 @@ def main(args):
 
     if options.abbrev is not None and options.abbrev <= 0:
         options.abbrev = None
+
+    if options.show_commit:
+        first_format = other_format = COMMIT_FORMAT
+        warn = sys.exit
+    else:
+        first_format = FIRST_FORMAT
+        other_format = OTHER_FORMAT
+        warn = lambda msg: sys.stdout.write(msg + '\n')
 
     # Convert commit into a SHA-1:
     try:
@@ -508,9 +526,9 @@ def main(args):
                     sha1 = rev_parse(sha1, abbrev=options.abbrev)
 
                 if first:
-                    format = FIRST_FORMAT
+                    format = first_format
                 else:
-                    format = OTHER_FORMAT
+                    format = other_format
 
                 sys.stdout.write(format % dict(refname=branch, sha1=sha1) + '\n')
 
@@ -530,16 +548,16 @@ def main(args):
 
         except DirectlyOnBranchError as e:
             if first:
-                sys.stdout.write(WARN_FORMAT % dict(refname=e.refname, msg=e.msg) + '\n')
+                warn(WARN_FORMAT % dict(refname=e.refname, msg=e.msg))
         except MergedViaMultipleParentsError as e:
             if first:
-                sys.stdout.write(WARN_FORMAT % dict(refname=e.refname, msg=e.msg) + '\n')
+                warn(WARN_FORMAT % dict(refname=e.refname, msg=e.msg))
             else:
-                sys.stdout.write(WARN_FORMAT % dict(refname='', msg=e.msg) + '\n')
+                warn(WARN_FORMAT % dict(refname='', msg=e.msg))
         except MergeNotFoundError as e:
-            sys.stdout.write(WARN_FORMAT % dict(refname=e.refname, msg=e.msg) + '\n')
+            warn(WARN_FORMAT % dict(refname=e.refname, msg=e.msg))
         except Failure as e:
-            sys.stderr.write('%s' % (e.message,))
+            sys.exit('%s' % (e.message,))
 
 
 main(sys.argv[1:])
