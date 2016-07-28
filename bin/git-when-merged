@@ -367,6 +367,7 @@ FIRST_FORMAT = '%(refname)-38s %(sha1)s'
 OTHER_FORMAT = FIRST_FORMAT % dict(refname='', sha1='via %(sha1)s')
 
 COMMIT_FORMAT = '%(sha1)s'
+BRANCH_FORMAT = '%(sha1)s^1..%(sha1)s'
 
 WARN_FORMAT = '%(refname)-38s %(msg)s'
 
@@ -416,12 +417,24 @@ def main(args):
         action='store_true',
         help='Follow merges back recursively.',
         )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         '--show-commit', '-c', action='store_true',
         help=(
             'Display only the SHA-1 of the merge commit. '
             'Exit with a nonzero exit code if the commit was not merged '
             'via a merge commit.'
+            ),
+        )
+    group.add_argument(
+        '--show-branch', '-b', action='store_true',
+        help=(
+            'Display the range of commits that were merged '
+            'at the same time as the specified commit. '
+            'Exit with a nonzero exit code if the commit was not merged '
+            'via a merge commit. '
+            'This option also affects the behavior of --log and '
+            '--visualize.'
             ),
         )
     parser.add_argument(
@@ -439,7 +452,12 @@ def main(args):
         )
     parser.add_argument(
         '--log', '-l', action='store_true', default=False,
-        help='Show the log for the merge commit.',
+        help=(
+            'Show the log for the merge commit. '
+            'When used with "--show-branch/-b", show the log for all of '
+            'the commits that were merged at the same time as the specified '
+            'commit.'
+            ),
         )
     parser.add_argument(
         '--diff', '-d', action='store_true', default=False,
@@ -447,7 +465,11 @@ def main(args):
         )
     parser.add_argument(
         '--visualize', '-v', action='store_true', default=False,
-        help='Visualize the merge commit using gitk.',
+        help=(
+            'Visualize the merge commit using gitk. '
+            'When used with "--show-branch/-b", only show the branch(es) '
+            'that were merged at the same time as the specified commit.'
+            ),
         )
     parser.add_argument(
         'commit',
@@ -471,6 +493,9 @@ def main(args):
 
     if options.show_commit:
         first_format = other_format = COMMIT_FORMAT
+        warn = sys.exit
+    elif options.show_branch:
+        first_format = other_format = BRANCH_FORMAT
         warn = sys.exit
     else:
         first_format = FIRST_FORMAT
@@ -533,13 +558,28 @@ def main(args):
                 sys.stdout.write(format % dict(refname=branch, sha1=sha1) + '\n')
 
                 if options.log:
-                    subprocess.check_call(['git', '--no-pager', 'log', '--no-walk', sha1])
+                    cmd = ['git', '--no-pager', 'log']
+                    if options.show_branch:
+                        cmd += ['--topo-order', '%s^1..%s' % (sha1, sha1)]
+                    else:
+                        cmd += ['--no-walk', sha1]
+                    subprocess.check_call(cmd)
 
                 if options.diff:
-                    subprocess.check_call(['git', '--no-pager', 'show', sha1])
+                    cmd = ['git', '--no-pager', 'diff', '%s^1..%s' % (sha1, sha1)]
+                    subprocess.check_call(cmd)
 
                 if options.visualize:
-                    subprocess.check_call(['gitk', '--all', '--select-commit=%s' % (sha1,)])
+                    cmd = ['gitk']
+
+                    if options.show_branch:
+                        cmd += ['%s^1..%s' % (sha1, sha1)]
+                        cmd += ['--select-commit=%s' % (commit,)]
+                    else:
+                        cmd += ['--all']
+                        cmd += ['--select-commit=%s' % (sha1,)]
+
+                    subprocess.check_call(cmd)
 
                 if options.recursive:
                     first = False

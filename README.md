@@ -76,13 +76,23 @@ optional arguments:
   --show-commit, -c     Display only the SHA-1 of the merge commit. Exit with
                         a nonzero exit code if the commit was not merged via a
                         merge commit.
+  --show-branch, -b     Display the range of commits that were merged at the
+                        same time as the specified commit. Exit with a nonzero
+                        exit code if the commit was not merged via a merge
+                        commit. This option also affects the behavior of --log
+                        and --visualize.
   --abbrev N            Abbreviate commit SHA-1s to the specified number of
                         characters (or more if needed to avoid ambiguity). See
                         also whenmerged.abbrev below under CONFIGURATION.
   --no-abbrev           Do not abbreviate commit SHA-1s.
-  --log, -l             Show the log for the merge commit.
+  --log, -l             Show the log for the merge commit. When used with
+                        "--show-branch/-b", show the log for all of the
+                        commits that were merged at the same time as the
+                        specified commit.
   --diff, -d            Show the diff for the merge commit.
-  --visualize, -v       Visualize the merge commit using gitk.
+  --visualize, -v       Visualize the merge commit using gitk. When used with
+                        "--show-branch/-b", only show the branch(es) that were
+                        merged at the same time as the specified commit.
 
 Examples:
   git when-merged 0a1b                     # Find merge into current branch
