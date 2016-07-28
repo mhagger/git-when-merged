@@ -76,7 +76,7 @@ Configuration:
                   '^refs/remotes/origin/release\-\d+\.\d+$'
 
   whenmerged.abbrev
-      If this value is set to a positive integer, then Git SHA1s are
+      If this value is set to a positive integer, then Git SHA-1s are
       abbreviated to this number of characters (or longer if needed to
       avoid ambiguity).  This value can be overridden using --abbrev=N
       or --no-abbrev.
@@ -302,7 +302,7 @@ class MergedViaMultipleParentsError(MergeNotFoundError):
 
 
 def find_merge(commit, branch):
-    """Return the SHA1 of the commit that merged commit into branch.
+    """Return the SHA-1 of the commit that merged commit into branch.
 
     It is assumed that content is always merged in via the second or
     subsequent parents of a merge commit."""
@@ -435,14 +435,14 @@ def main(args):
         '--abbrev', metavar='N',
         action='store', type='int', default=default_abbrev,
         help=(
-            'Abbreviate commit SHA1s to the specified number of characters '
+            'Abbreviate commit SHA-1s to the specified number of characters '
             '(or more if needed to avoid ambiguity).  '
             'See also whenmerged.abbrev below under CONFIGURATION.'
             ),
         )
     parser.add_option(
         '--no-abbrev', dest='abbrev', action='store_const', const=None,
-        help='Do not abbreviate commit SHA1s.',
+        help='Do not abbreviate commit SHA-1s.',
         )
     parser.add_option(
         '--log', '-l', action='store_true', default=False,
@@ -466,7 +466,7 @@ def main(args):
         options.abbrev = None
 
     commit = args.pop(0)
-    # Convert commit into a SHA1:
+    # Convert commit into a SHA-1:
     try:
         commit = rev_parse('%s^{commit}' % (commit,))
     except Failure as e:

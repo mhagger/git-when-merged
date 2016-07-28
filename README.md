@@ -64,10 +64,10 @@ Options:
                         whenmerged.<name>.pattern below under CONFIGURATION).
   -s, --default         Shorthand for "--name=default".
   -r, --recursive       Follow merges back recursively.
-  --abbrev=N            Abbreviate commit SHA1s to the specified number of
+  --abbrev=N            Abbreviate commit SHA-1s to the specified number of
                         characters (or more if needed to avoid ambiguity).
                         See also whenmerged.abbrev below under CONFIGURATION.
-  --no-abbrev           Do not abbreviate commit SHA1s.
+  --no-abbrev           Do not abbreviate commit SHA-1s.
   -l, --log             Show the log for the merge commit.
   -d, --diff            Show the diff for the merge commit.
   -v, --visualize       Visualize the merge commit using gitk.
@@ -116,7 +116,7 @@ Configuration:
                   '^refs/remotes/origin/release\-\d+\.\d+$'
 
   whenmerged.abbrev
-      If this value is set to a positive integer, then Git SHA1s are
+      If this value is set to a positive integer, then Git SHA-1s are
       abbreviated to this number of characters (or longer if needed to
       avoid ambiguity).  This value can be overridden using --abbrev=N
       or --no-abbrev.
