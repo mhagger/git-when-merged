@@ -52,36 +52,34 @@ $ brew install git-when-merged
 Find the merge commit that brought `COMMIT` into the specified `BRANCH`(es). Specifically, look for the oldest commit on the first-parent history of each `BRANCH` that contains the `COMMIT` as an ancestor.
 
 ```
-Options:
+positional arguments:
+  commit                The commit whose destiny you would like to determine.
+  branch                The destination branch(es) into which <commit> might
+                        have been merged. (Actually, BRANCH can be an
+                        arbitrary commit, specified in any way that is
+                        understood by git-rev-parse(1).) If neither <branch>
+                        nor --pattern/-p nor --default/-s is specified, then
+                        HEAD is used.
+
+optional arguments:
   -h, --help            show this help message and exit
-  -p PATTERN, --pattern=PATTERN
+  --pattern PATTERN, -p PATTERN
                         Show when COMMIT was merged to the references matching
-                        the specified regexp.  If the regexp has parentheses
+                        the specified regexp. If the regexp has parentheses
                         for grouping, then display in the output the part of
                         the reference name matching the first group.
-  -n NAME, --name=NAME  Show when COMMIT was merged to the references matching
+  --name NAME, -n NAME  Show when COMMIT was merged to the references matching
                         the configured pattern(s) with the given name (see
                         whenmerged.<name>.pattern below under CONFIGURATION).
-  -s, --default         Shorthand for "--name=default".
-  -r, --recursive       Follow merges back recursively.
-  --abbrev=N            Abbreviate commit SHA-1s to the specified number of
-                        characters (or more if needed to avoid ambiguity).
-                        See also whenmerged.abbrev below under CONFIGURATION.
+  --default, -s         Shorthand for "--name=default".
+  --recursive, -r       Follow merges back recursively.
+  --abbrev N            Abbreviate commit SHA-1s to the specified number of
+                        characters (or more if needed to avoid ambiguity). See
+                        also whenmerged.abbrev below under CONFIGURATION.
   --no-abbrev           Do not abbreviate commit SHA-1s.
-  -l, --log             Show the log for the merge commit.
-  -d, --diff            Show the diff for the merge commit.
-  -v, --visualize       Visualize the merge commit using gitk.
-
-  COMMIT
-      a commit whose destiny you would like to determine (this
-      argument is required)
-
-  BRANCH...
-      the destination branches into which <commit> might have been
-      merged.  (Actually, BRANCH can be an arbitrary commit, specified
-      in any way that is understood by git-rev-parse(1).) If neither
-      <branch> nor -p/--pattern nor -s/--default is specified, then
-      HEAD is used
+  --log, -l             Show the log for the merge commit.
+  --diff, -d            Show the diff for the merge commit.
+  --visualize, -v       Visualize the merge commit using gitk.
 
 Examples:
   git when-merged 0a1b                     # Find merge into current branch

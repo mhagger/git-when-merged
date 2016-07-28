@@ -32,17 +32,6 @@ USAGE = r"""git when-merged [OPTIONS] COMMIT [BRANCH...]
 """
 
 EPILOG = r"""
-  COMMIT
-      a commit whose destiny you would like to determine (this
-      argument is required)
-
-  BRANCH...
-      the destination branches into which <commit> might have been
-      merged.  (Actually, BRANCH can be an arbitrary commit, specified
-      in any way that is understood by git-rev-parse(1).) If neither
-      <branch> nor -p/--pattern nor -s/--default is specified, then
-      HEAD is used
-
 Examples:
   git when-merged 0a1b                     # Find merge into current branch
   git when-merged 0a1b feature-1 feature-2 # Find merge into given branches
@@ -88,7 +77,7 @@ Based on:
 import sys
 import re
 import subprocess
-import optparse
+import argparse
 
 
 if not (0x02060000 <= sys.hexversion):
@@ -347,16 +336,6 @@ def find_merge(commit, branch):
         [branch_sha1] = parents
 
 
-class Parser(optparse.OptionParser):
-    """An OptionParser that doesn't reflow usage and epilog."""
-
-    def get_usage(self):
-        return self.usage
-
-    def format_epilog(self, formatter):
-        return self.epilog
-
-
 def get_full_name(branch):
     """Return the full name of the specified commit.
 
@@ -388,8 +367,9 @@ FORMAT = '%(refname)-38s %(msg)s\n'
 
 
 def main(args):
-    parser = Parser(
+    parser = argparse.ArgumentParser(
         prog='git when-merged',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__,
         usage=USAGE,
         epilog=EPILOG,
@@ -402,17 +382,17 @@ def main(args):
     except CalledProcessError:
         default_abbrev = None
 
-    parser.add_option(
+    parser.add_argument(
         '--pattern', '-p', metavar='PATTERN',
         action='append', dest='patterns', default=[],
         help=(
             'Show when COMMIT was merged to the references matching '
-            'the specified regexp.  If the regexp has parentheses for '
+            'the specified regexp. If the regexp has parentheses for '
             'grouping, then display in the output the part of the '
             'reference name matching the first group.'
             ),
         )
-    parser.add_option(
+    parser.add_argument(
         '--name', '-n', metavar='NAME',
         action='append', dest='names', default=[],
         help=(
@@ -421,54 +401,64 @@ def main(args):
             'whenmerged.<name>.pattern below under CONFIGURATION).'
             ),
         )
-    parser.add_option(
+    parser.add_argument(
         '--default', '-s',
         action='append_const', dest='names', const='default',
         help='Shorthand for "--name=default".',
         )
-    parser.add_option(
+    parser.add_argument(
         '--recursive', '-r',
         action='store_true',
         help='Follow merges back recursively.',
         )
-    parser.add_option(
+    parser.add_argument(
         '--abbrev', metavar='N',
-        action='store', type='int', default=default_abbrev,
+        action='store', type=int, default=default_abbrev,
         help=(
             'Abbreviate commit SHA-1s to the specified number of characters '
             '(or more if needed to avoid ambiguity).  '
             'See also whenmerged.abbrev below under CONFIGURATION.'
             ),
         )
-    parser.add_option(
+    parser.add_argument(
         '--no-abbrev', dest='abbrev', action='store_const', const=None,
         help='Do not abbreviate commit SHA-1s.',
         )
-    parser.add_option(
+    parser.add_argument(
         '--log', '-l', action='store_true', default=False,
         help='Show the log for the merge commit.',
         )
-    parser.add_option(
+    parser.add_argument(
         '--diff', '-d', action='store_true', default=False,
         help='Show the diff for the merge commit.',
         )
-    parser.add_option(
+    parser.add_argument(
         '--visualize', '-v', action='store_true', default=False,
         help='Visualize the merge commit using gitk.',
         )
+    parser.add_argument(
+        'commit',
+        help='The commit whose destiny you would like to determine.',
+        )
+    parser.add_argument(
+        'branch', nargs='*',
+        help=(
+            'The destination branch(es) into which <commit> might have been '
+            'merged.  (Actually, BRANCH can be an arbitrary commit, specified '
+            'in any way that is understood by git-rev-parse(1).) If neither '
+            '<branch> nor --pattern/-p nor --default/-s is specified, then '
+            'HEAD is used.'
+            ),
+        )
 
-    (options, args) = parser.parse_args(args)
-
-    if not args:
-        parser.error('You must specify a COMMIT argument')
+    options = parser.parse_args(args)
 
     if options.abbrev is not None and options.abbrev <= 0:
         options.abbrev = None
 
-    commit = args.pop(0)
     # Convert commit into a SHA-1:
     try:
-        commit = rev_parse('%s^{commit}' % (commit,))
+        commit = rev_parse('%s^{commit}' % (options.commit,))
     except Failure as e:
         sys.exit(e.message)
 
@@ -498,7 +488,7 @@ def main(args):
             if matches_any(refname, refpatterns)
             )
 
-    for branch in args:
+    for branch in options.branch:
         try:
             branches.add(get_full_name(branch))
         except Failure as e:
