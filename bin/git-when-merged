@@ -468,7 +468,7 @@ def main(args):
     commit = args.pop(0)
     # Convert commit into a SHA1:
     try:
-        commit = rev_parse(commit)
+        commit = rev_parse('%s^{commit}' % (commit,))
     except Failure as e:
         sys.exit(e.message)
 
