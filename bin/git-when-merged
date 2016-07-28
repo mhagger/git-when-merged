@@ -308,7 +308,7 @@ def find_merge(commit, branch):
     subsequent parents of a merge commit."""
 
     try:
-        branch_sha1 = rev_parse(branch)
+        branch_sha1 = rev_parse('%s^{commit}' % (branch,))
     except Failure:
         raise InvalidCommitError(branch)
 
