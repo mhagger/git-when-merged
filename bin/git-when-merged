@@ -207,6 +207,21 @@ def rev_parse(arg, abbrev=None):
         raise Failure('%r is not a valid commit!' % (arg,))
 
 
+def describe(arg, contains=False):
+    cmd = ['git', 'describe']
+    if contains:
+        cmd += ['--contains']
+    cmd += [arg]
+
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = process.communicate()
+    retcode = process.poll()
+    if retcode:
+        return None
+    else:
+        return _decode_output(out).strip()
+
+
 def rev_list(*args):
     """Iterate over (commit, [parent,...]) for the selected commits.
 
@@ -365,13 +380,24 @@ def get_full_name(branch):
     return branch
 
 
-FIRST_FORMAT = '%(refname)-38s %(sha1)s'
-OTHER_FORMAT = FIRST_FORMAT % dict(refname='', sha1='via %(sha1)s')
+FIRST_FORMAT = '%(refname)-38s %(name)s'
+OTHER_FORMAT = FIRST_FORMAT % dict(refname='', name='via %(name)s')
 
-COMMIT_FORMAT = '%(sha1)s'
-BRANCH_FORMAT = '%(sha1)s^1..%(sha1)s'
+COMMIT_FORMAT = '%(name)s'
+BRANCH_FORMAT = '%(name)s^1..%(name)s'
 
 WARN_FORMAT = '%(refname)-38s %(msg)s'
+
+
+def name_commit(sha1, options):
+    if options.describe:
+        return describe(sha1) or sha1
+    elif options.describe_contains:
+        return describe(sha1, contains=True) or sha1
+    elif options.abbrev is not None:
+        return rev_parse(sha1, abbrev=options.abbrev)
+    else:
+        return sha1
 
 
 def main(args):
@@ -439,7 +465,8 @@ def main(args):
             '--visualize.'
             ),
         )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         '--abbrev', metavar='N',
         action='store', type=int, default=default_abbrev,
         help=(
@@ -448,9 +475,23 @@ def main(args):
             'See also whenmerged.abbrev below under CONFIGURATION.'
             ),
         )
-    parser.add_argument(
+    group.add_argument(
         '--no-abbrev', dest='abbrev', action='store_const', const=None,
         help='Do not abbreviate commit SHA-1s.',
+        )
+    group.add_argument(
+        '--describe', action='store_true',
+        help=(
+            'Describe the merge commit in terms of the most recent tag '
+            'reachable from the commit (see git-describe(1))'
+            ),
+        )
+    group.add_argument(
+        '--describe-contains', action='store_true',
+        help=(
+            'Describe the merge commit in terms of a nearby tag '
+            'that contains it (see git-describe(1))'
+            ),
         )
     parser.add_argument(
         '--log', '-l', action='store_true', default=False,
@@ -549,15 +590,16 @@ def main(args):
         first = True
         try:
             for sha1 in find_merge(commit, branch):
-                if options.abbrev is not None:
-                    sha1 = rev_parse(sha1, abbrev=options.abbrev)
+                name = name_commit(sha1)
 
                 if first:
                     format = first_format
                 else:
                     format = other_format
 
-                sys.stdout.write(format % dict(refname=branch, sha1=sha1) + '\n')
+                sys.stdout.write(
+                    format % dict(refname=branch, sha1=sha1, name=name) + '\n',
+                    )
 
                 if options.log:
                     cmd = ['git', '--no-pager', 'log']
