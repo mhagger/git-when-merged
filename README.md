@@ -52,71 +52,84 @@ $ brew install git-when-merged
 Find the merge commit that brought `COMMIT` into the specified `BRANCH`(es). Specifically, look for the oldest commit on the first-parent history of each `BRANCH` that contains the `COMMIT` as an ancestor.
 
 ```
-Options:
+positional arguments:
+  commit                The commit whose destiny you would like to determine.
+  branch                The destination branch(es) into which <commit> might
+                        have been merged. (Actually, BRANCH can be an
+                        arbitrary commit, specified in any way that is
+                        understood by git-rev-parse(1).) If neither <branch>
+                        nor --pattern/-p nor --default/-s is specified, then
+                        HEAD is used.
+
+optional arguments:
   -h, --help            show this help message and exit
-  -p PATTERN, --pattern=PATTERN
+  --pattern PATTERN, -p PATTERN
                         Show when COMMIT was merged to the references matching
-                        the specified regexp.  If the regexp has parentheses
+                        the specified regexp. If the regexp has parentheses
                         for grouping, then display in the output the part of
                         the reference name matching the first group.
-  -n NAME, --name=NAME  Show when COMMIT was merged to the references matching
+  --name NAME, -n NAME  Show when COMMIT was merged to the references matching
                         the configured pattern(s) with the given name (see
                         whenmerged.<name>.pattern below under CONFIGURATION).
-  -s, --default         Shorthand for "--name=default".
-  -r, --recursive       Follow merges back recursively.
-  --abbrev=N            Abbreviate commit SHA1s to the specified number of
-                        characters (or more if needed to avoid ambiguity).
-                        See also whenmerged.abbrev below under CONFIGURATION.
-  --no-abbrev           Do not abbreviate commit SHA1s.
-  -l, --log             Show the log for the merge commit.
-  -d, --diff            Show the diff for the merge commit.
-  -v, --visualize       Visualize the merge commit using gitk.
-
-  COMMIT
-      a commit whose destiny you would like to determine (this
-      argument is required)
-
-  BRANCH...
-      the destination branches into which <commit> might have been
-      merged.  (Actually, BRANCH can be an arbitrary commit, specified
-      in any way that is understood by git-rev-parse(1).) If neither
-      <branch> nor -p/--pattern nor -s/--default is specified, then
-      HEAD is used
+  --default, -s         Shorthand for "--name=default".
+  --recursive, -r       Follow merges back recursively.
+  --show-commit, -c     Display only the SHA-1 of the merge commit. Exit with
+                        a nonzero exit code if the commit was not merged via a
+                        merge commit.
+  --show-branch, -b     Display the range of commits that were merged at the
+                        same time as the specified commit. Exit with a nonzero
+                        exit code if the commit was not merged via a merge
+                        commit. This option also affects the behavior of --log
+                        and --visualize.
+  --abbrev N            Abbreviate commit SHA-1s to the specified number of
+                        characters (or more if needed to avoid ambiguity). See
+                        also whenmerged.abbrev below under CONFIGURATION.
+  --no-abbrev           Do not abbreviate commit SHA-1s.
+  --log, -l             Show the log for the merge commit. When used with
+                        "--show-branch/-b", show the log for all of the
+                        commits that were merged at the same time as the
+                        specified commit.
+  --diff, -d            Show the diff for the merge commit.
+  --visualize, -v       Visualize the merge commit using gitk. When used with
+                        "--show-branch/-b", only show the branch(es) that were
+                        merged at the same time as the specified commit.
 
 Examples:
-  git when-merged 0a1b                     # Find merge into current branch
-  git when-merged 0a1b feature-1 feature-2 # Find merge into given branches
-  git when-merged 0a1b -p feature-[0-9]+   # Specify branches by regex
-  git when-merged 0a1b -n releases         # Use whenmerged.releases.pattern
-  git when-merged 0a1b -s                  # Use whenmerged.default.pattern
+  git when-merged 0a1b                   # Find the merge commit that brought
+                                         # commit 0a1b into the current branch
+  git when-merged 0a1b v1.10 v1.11       # Find merge into given tags/branches
+  git when-merged 0a1b -p feature-[0-9]+ # Specify tags/branches by regex
+  git when-merged 0a1b -n releases       # Use whenmerged.releases.pattern
+  git when-merged 0a1b -s                # Use whenmerged.default.pattern
 
-  git when-merged 0a1b -r feature-1        # If merged indirectly, show all
-                                           # merges involved.
-
-  git when-merged 0a1b -l feature-1        # Show log for the merge commit
-  git when-merged 0a1b -d feature-1        # Show diff for the merge commit
-  git when-merged 0a1b -v feature-1        # Display merge commit in gitk
+  git when-merged -r 0a1b                # If the commit was merged indirectly,
+                                         # show each intermediate merge.
+  git when-merged -l 0a1b                # Show the log for the merge commit
+  git when-merged -lb 0a1b               # Show log for the whole merged branch
+  git when-merged -v 0a1b                # Visualize the merge commit in gitk
+  git when-merged -vb 0a1b               # Visualize the whole merged branch
+  git when-merged -d 0a1b                # Show the diff for the merge commit
+  git when-merged -c 0a1b                # Print only the merge's SHA-1
 
 Configuration:
   whenmerged.<name>.pattern
       Regular expressions that match reference names for the pattern
       called <name>.  A regexp is sought in the full reference name,
-      in the form "refs/heads/master".  This option can be
-      multivalued, in which case references matching any of the
-      patterns are considered.  Typically you will use pattern(s) that
-      match master and/or significant release branches, or perhaps
-      their remote-tracking equivalents.  For example,
+      in the form "refs/heads/master".  This option can be multivalued, in
+      which case references matching any of the patterns are considered.
+      Typically the pattern will be chosen to match master and/or significant
+      release branches or tags, or perhaps their remote-tracking equivalents.
+      For example,
 
-          git config whenmerged.default.pattern \
-                  '^refs/heads/master$'
+          git config whenmerged.default.pattern '^refs/heads/master$'
+          git config --add whenmerged.default.pattern '^refs/heads/maint$'
 
       or
 
-          git config whenmerged.releases.pattern \
-                  '^refs/remotes/origin/release\-\d+\.\d+$'
+          git config whenmerged.releases.pattern '^refs/tags/release-'
 
   whenmerged.abbrev
-      If this value is set to a positive integer, then Git SHA1s are
+      If this value is set to a positive integer, then Git SHA-1s are
       abbreviated to this number of characters (or longer if needed to
       avoid ambiguity).  This value can be overridden using --abbrev=N
       or --no-abbrev.
