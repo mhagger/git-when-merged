@@ -85,6 +85,10 @@ optional arguments:
                         characters (or more if needed to avoid ambiguity). See
                         also whenmerged.abbrev below under CONFIGURATION.
   --no-abbrev           Do not abbreviate commit SHA-1s.
+  --describe            Describe the merge commit in terms of the most recent
+                        tag reachable from the commit (see git-describe(1))
+  --describe-contains   Describe the merge commit in terms of a nearby tag
+                        that contains it (see git-describe(1))
   --log, -l             Show the log for the merge commit. When used with
                         "--show-branch/-b", show the log for all of the
                         commits that were merged at the same time as the
