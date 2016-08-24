@@ -590,7 +590,7 @@ def main(args):
         first = True
         try:
             for sha1 in find_merge(commit, branch):
-                name = name_commit(sha1)
+                name = name_commit(sha1, options)
 
                 if first:
                     format = first_format
