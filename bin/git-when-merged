@@ -159,7 +159,7 @@ def read_refpatterns(name):
             except re.error as e:
                 sys.stderr.write(
                     'Error compiling branch pattern %r; ignoring: %s\n'
-                    % (value, e.message,)
+                    % (value, e,)
                     )
     return retval
 
@@ -549,7 +549,7 @@ def main(args):
     try:
         commit = rev_parse('%s^{commit}' % (options.commit,))
     except Failure as e:
-        sys.exit(e.message)
+        sys.exit(str(e))
 
     refpatterns = []
 
@@ -559,14 +559,14 @@ def main(args):
         except re.error as e:
             sys.stderr.write(
                 'Error compiling pattern %r; ignoring: %s\n'
-                % (value, e.message,)
+                % (value, e,)
                 )
 
     for value in options.names:
         try:
             refpatterns.extend(read_refpatterns(value))
         except Failure as e:
-            sys.exit(e.message)
+            sys.exit(str(e))
 
     branches = set()
 
@@ -581,7 +581,7 @@ def main(args):
         try:
             branches.add(get_full_name(branch))
         except Failure as e:
-            sys.exit(e.message)
+            sys.exit(str(e))
 
     if not branches:
         branches.add(get_full_name('HEAD'))
@@ -641,7 +641,7 @@ def main(args):
         except MergeNotFoundError as e:
             warn(WARN_FORMAT % dict(refname=e.refname, msg=e.msg))
         except Failure as e:
-            sys.exit('%s' % (e.message,))
+            sys.exit('%s' % (e,))
 
 
 main(sys.argv[1:])
