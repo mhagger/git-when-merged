@@ -35,7 +35,12 @@ if __name__ == "__main__":
         classifiers=[
             "License :: OSI Approved"
             " :: GNU General Public License v2 or later (GPLv2+)",
-            "Intended Audience :: End Users/Desktop",
             "Development Status :: 5 - Production/Stable",
+            "Intended Audience :: Developers",
+            "Intended Audience :: End Users/Desktop",
+            "Topic :: Software Development :: Version Control",
+            "Topic :: Software Development :: Version Control :: Git",
+            "Topic :: Utilities",
+            "Environment :: Console",
         ],
     )
