@@ -31,19 +31,114 @@ There are many more options; see below.
 
 ## Installation
 
-* Clone the repo somewhere on your system.
-* Ensure that `<somewhere>/bin/git-when-merged` is executable.
-* Put the contents of `<somewhere>/bin` on your `$PATH`.
+**_Note: If you are using 2.6 <= Python <= 3.6, you MUST use Option 3 or 4._**
+
+<details open>
+<summary><h3>Option 1: Install as a stand-alone command line tool.</h3></summary>
+<br>
+
+> pipx is a tool to help you install and run end-user applications written in Python.
+
+1. [Install `pipx`](https://pipxproject.github.io/pipx/installation/):
+
+   ``` sh
+   python3 -m pip install --user pipx
+   ```
+
+   - Tip: [Homebrew](https://formulae.brew.sh/formula/pipx) as well as newer versions of some Linux distributions (e.g. [Debian 10](https://packages.debian.org/buster/pipx), [Ubuntu 19.04](https://packages.ubuntu.com/disco/pipx), etc.) offer native packages for `pipx`.
+
+   <br>
+
+   ``` sh
+   python3 -m pipx ensurepath
+   ```
+
+   - Note: You may need to restart your terminal for the `$PATH` updates to take effect.
+
+2. Use `pipx` to install [`git-when-merged` from PyPI](https://pypi.org/project/git-when-merged/):
+
+   ``` sh
+   pipx install git-when-merged
+   ```
+
+3. Test the installation:
+
+   ``` sh
+   git-when-merged --help
+   ```
+
+- Use `pipx` to uninstall at any time:
+
+   ``` sh
+   pipx uninstall git-when-merged
+   ```
+
+See Python's [Installing stand alone command line tools](https://packaging.python.org/guides/installing-stand-alone-command-line-tools/) guide for more information.
+</details>
+
+<details>
+<summary><h3>Option 2: Create an ephemeral installation.</h3></summary>
+<br>
+
+> Python "Virtual Environments" allow Python packages to be installed in an isolated location for a particular application, rather than being installed globally.
+
+1. Use the built-in [`venv`](https://docs.python.org/3/library/venv.html) module to create a virtual environment:
+
+   ``` sh
+   python3 -m venv ./venv-gwm
+   ```
+
+2. Use `pip` to install [`git-when-merged` from PyPI](https://pypi.org/project/git-when-merged/) into the virtual environment:
+
+   ``` sh
+   venv-gwm/bin/pip install git-when-merged
+   ```
+
+3. Test the installation:
+
+   ``` sh
+   venv-gwm/bin/git-when-merged --help
+   ```
+
+   - Tip: Some users find it more convenient to "activate" the virtual environment (which prepends the virtual environment's `bin/` to `$PATH`):
+
+      ``` sh
+      source venv-gwm/bin/activate
+      git-when-merged --help
+      deactivate
+      ```
+
+- Remove the virtual environment to uninstall at any time:
+
+   ``` sh
+   rm --recursive venv-gwm/
+   ```
+
+See Python's [Installing Packages](https://packaging.python.org/tutorials/installing-packages/) tutorial for more information.
+</details>
+
+<details>
+<summary><h3>Option 3: Clone and add to <code>$PATH</code>.</h3></summary>
+<br>
+
+1. Clone the repo somewhere on your system.
+
+2. Ensure that `<somewhere>/bin/git-when-merged` is executable.
+
+3. Put the contents of `<somewhere>/bin` on your `$PATH`.
 
 That's it!
+</details>
 
-Or, using Homebrew:
+<details>
+<summary><h3>Option 4 (MacOS Users): Install from Homebrew.</h3></summary>
+<br>
 
 ```ShellSession
 $ brew update
 $ brew install git-when-merged
 ```
-
+</details>
 
 ## Usage
 
