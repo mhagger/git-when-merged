@@ -318,6 +318,9 @@ def find_merge(commit_sha1, branch):
     except Failure:
         raise InvalidCommitError(branch)
 
+    if branch_sha1 == commit_sha1:
+        raise DirectlyOnBranchError(branch)
+
     commit_graph = CommitGraph('--ancestry-path', '%s..%s' % (commit_sha1, branch_sha1))
 
     while True:
