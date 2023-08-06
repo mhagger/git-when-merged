@@ -307,7 +307,7 @@ class MergedViaMultipleParentsError(MergeNotFoundError):
         self.msg = 'Merged via multiple parents: %s' % (' '.join(parents),)
 
 
-def find_merge(commit, branch):
+def find_merge(commit_sha1, branch):
     """Return the SHA-1 of the commit that merged commit into branch.
 
     It is assumed that content is always merged in via the second or
@@ -318,7 +318,10 @@ def find_merge(commit, branch):
     except Failure:
         raise InvalidCommitError(branch)
 
-    commit_graph = CommitGraph('--ancestry-path', '%s..%s' % (commit, branch_sha1))
+    if branch_sha1 == commit_sha1:
+        raise DirectlyOnBranchError(branch)
+
+    commit_graph = CommitGraph('--ancestry-path', '%s..%s' % (commit_sha1, branch_sha1))
 
     while True:
         branch_commits = list(commit_graph.first_parent_path(branch_sha1))
@@ -331,12 +334,12 @@ def find_merge(commit, branch):
         last = branch_commits[-1]
         parents = commit_graph[last]
 
-        if parents[0] == commit:
+        if parents[0] == commit_sha1:
             raise DirectlyOnBranchError(branch)
 
         yield last
 
-        if commit in parents:
+        if commit_sha1 in parents:
             # The commit was merged in directly:
             return
 
@@ -549,7 +552,7 @@ def main(args=None):
 
     # Convert commit into a SHA-1:
     try:
-        commit = rev_parse('%s^{commit}' % (options.commit,))
+        commit_sha1 = rev_parse('%s^{commit}' % (options.commit,))
     except Failure as e:
         sys.exit(str(e))
 
@@ -591,7 +594,7 @@ def main(args=None):
     for branch in sorted(branches):
         first = True
         try:
-            for sha1 in find_merge(commit, branch):
+            for sha1 in find_merge(commit_sha1, branch):
                 name = name_commit(sha1, options)
 
                 if first:
@@ -620,7 +623,7 @@ def main(args=None):
 
                     if options.show_branch:
                         cmd += ['%s^1..%s' % (sha1, sha1)]
-                        cmd += ['--select-commit=%s' % (commit,)]
+                        cmd += ['--select-commit=%s' % (commit_sha1,)]
                     else:
                         cmd += ['--all']
                         cmd += ['--select-commit=%s' % (sha1,)]
